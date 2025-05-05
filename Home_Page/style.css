@@ -168,6 +168,7 @@ body {
   border: none;
   font-weight: 500;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  text-decoration: none;
 }
 
 .btn-login {
@@ -304,7 +305,7 @@ body {
 
 /* Hero Section */
 .hero {
-  padding-top: 30px;
+  padding-top: 60px;
   min-height: 90vh;
   display: flex;
   align-items: center;
@@ -349,6 +350,7 @@ body {
   border: none;
   border-radius: 30px;
   cursor: pointer;
+  text-decoration: none;
   transition: all var(--transition-speed) ease;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
