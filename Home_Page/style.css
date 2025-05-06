@@ -1566,7 +1566,7 @@ body {
 }
 
 .footer-container__complexArchitecturalSystemIntegrationDynamicComponentWrapper {
-  background-color: #000;
+  background-color: var(--primary-color);
   color: #fff;
   padding: 40px 30px 20px;
   display: flex;

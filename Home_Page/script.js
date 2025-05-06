@@ -484,5 +484,111 @@ function formatFileSize(bytes) {
                 handleScroll();
                 $(window).on('scroll', handleScroll);
             });
-
+            
+            // DOM elements
+            const digitInputs = document.querySelectorAll('.digit-input');
+            const verifyBtn = document.getElementById('verify-btn');
+            const backBtn = document.getElementById('back-btn');
+            const feedbackMessage = document.getElementById('feedback-message');
+    
+            // Function to handle input navigation
+            function setupInputNavigation() {
+                digitInputs.forEach((input, index) => {
+                    // Allow only numbers
+                    input.addEventListener('keypress', (e) => {
+                        if (!/[0-9]/.test(e.key)) {
+                            e.preventDefault();
+                        }
+                    });
+    
+                    // Move to next input when a digit is entered
+                    input.addEventListener('input', (e) => {
+                        if (e.target.value !== '') {
+                            // Move to next input
+                            if (index < digitInputs.length - 1) {
+                                digitInputs[index + 1].focus();
+                            } else {
+                                // Last input, can verify
+                                verifyBtn.focus();
+                            }
+                        }
+                    });
+    
+                    // Handle backspace
+                    input.addEventListener('keydown', (e) => {
+                        if (e.key === 'Backspace') {
+                            if (e.target.value === '' && index > 0) {
+                                digitInputs[index - 1].focus();
+                            }
+                        }
+                    });
+                });
+            }
+    
+            // Function to check if entered code matches saved code
+            function checkMatchingCode() {
+                const savedNumber = localStorage.getItem('randomNumber') || '';
+                let enteredNumber = '';
+    
+                digitInputs.forEach(input => {
+                    enteredNumber += input.value;
+                });
+    
+                // Clear any existing classes
+                feedbackMessage.classList.remove('success', 'error');
+    
+                if (enteredNumber.length < 6) {
+                    // Not complete
+                    feedbackMessage.textContent = 'Please enter all six digits';
+                    feedbackMessage.classList.add('error');
+                    feedbackMessage.style.display = 'block';
+                } else if (enteredNumber === savedNumber) {
+                    // Match
+                    feedbackMessage.textContent = 'Number matches! Printing now!';
+                    feedbackMessage.classList.add('success');
+                    feedbackMessage.style.display = 'block';
+                } else {
+                    // No match
+                    feedbackMessage.textContent = 'Number does not match the saved number!';
+                    feedbackMessage.classList.add('error');
+                    feedbackMessage.style.display = 'block';
+                }
+    
+                setTimeout(() => {
+                    if (enteredNumber === savedNumber) {
+                        // You could add additional actions for success here
+                    }
+                }, 1000);
+            }
+    
+            // Function to navigate back to main page
+            function navigateToMainPage() {
+                window.location.href = 'index.html';
+            }
+    
+            // Function to prefill inputs if there's a saved number
+            function prefillInputs() {
+                const savedNumber = localStorage.getItem('randomNumber');
+                if (savedNumber && savedNumber.length === 6) {
+                    for (let i = 0; i < 6; i++) {
+                        digitInputs[i].value = savedNumber.charAt(i);
+                    }
+                }
+            }
+    
+            // Initialize
+            function init() {
+                // Set up input navigation
+                setupInputNavigation();
+    
+                // Set up event listeners
+                verifyBtn.addEventListener('click', checkMatchingCode);
+                backBtn.addEventListener('click', navigateToMainPage);
+    
+                // Prefill inputs
+                prefillInputs();
+            }
+    
+            // Run initialization when DOM is loaded
+            document.addEventListener('DOMContentLoaded', init);
 
