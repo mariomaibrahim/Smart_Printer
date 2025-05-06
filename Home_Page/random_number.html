@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random Number Application</title>
+    <link rel="stylesheet" href="random.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+        <!-- Decorative elements -->
+        <div class="decoration circle1"></div>
+        <div class="decoration circle2"></div>
+        <div class="decoration dots"></div>
+
+        <h1>Random Number</h1>
+
+        <div id="random-number-container">
+            <div id="random-number">000000</div>
+            <div class="copy-icon" onclick="copyNumber()" title="Copy Number">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path
+                        d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" />
+                </svg>
+            </div>
+        </div>
+
+        <div class="buttons-container">
+            <a href="random_print.html"><button id="print-btn" class="btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path
+                            d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z" />
+                    </svg>
+                    Print Now
+                </button></a>
+        </div>
+
+    </div>
+
+    <script>
+        // DOM elements
+        const randomNumberDisplay = document.getElementById('random-number');
+        const generateBtn = document.getElementById('generate-btn');
+        const printBtn = document.getElementById('print-btn');
+        const copySuccess = document.getElementById('copy-success');
+
+        // Current random number
+        let currentRandomNumber = '';
+
+        // Function to generate random 6-digit number
+        function generateRandomNumber() {
+            const randomNumber = Math.floor(100000 + Math.random() * 900000).toString();
+            currentRandomNumber = randomNumber;
+
+            // Add animation effect
+            randomNumberDisplay.classList.remove('animate-number');
+            void randomNumberDisplay.offsetWidth; // Trigger reflow
+            randomNumberDisplay.classList.add('animate-number');
+
+            randomNumberDisplay.textContent = randomNumber;
+
+            // Set number in local storage
+            localStorage.setItem('randomNumber', randomNumber);
+
+            return randomNumber;
+        }
+
+        // Function to copy number to clipboard
+        function copyNumber() {
+            const number = randomNumberDisplay.textContent;
+            navigator.clipboard.writeText(number).then(() => {
+                // Show copy success notification
+                copySuccess.style.opacity = '1';
+                setTimeout(() => {
+                    copySuccess.style.opacity = '0';
+                }, 2000);
+            });
+        }
+
+        // Function to navigate to print page
+        function navigateToPrintPage() {
+            window.location.href = 'print.html';
+        }
+
+        // Initialize app
+        function init() {
+            // Generate a random number on page load
+            generateRandomNumber();
+
+            // Set up event listeners
+            generateBtn.addEventListener('click', generateRandomNumber);
+            printBtn.addEventListener('click', navigateToPrintPage);
+
+            // Make copy icon available globally
+            window.copyNumber = copyNumber;
+        }
+
+        // Run initialization when DOM is loaded
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+
+</html>
