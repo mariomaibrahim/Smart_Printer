@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Navbar</title>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Font - For the Aipt logo -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background-color: #f0f0f0;
+        }
+
+        .navbar {
+            background-color: white;
+            height: 70px;
+            width: 100%;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 50px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .navbar .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        .navbar .logo span {
+            color: #007bff;
+            letter-spacing: 1px;
+        }
+
+        .navbar .logo i {
+            color: #007bff;
+            margin-right: 8px;
+        }
+
+        .navbar .nav-links {
+            display: flex;
+            list-style: none;
+        }
+
+        .navbar .nav-links li {
+            margin: 10px;
+
+        }
+
+        .navbar .nav-links li a {
+            color: #333;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: 500;
+            transition: color 0.3s ease;
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .navbar .nav-links li a i {
+            margin-right: 8px;
+            font-size: 16px;
+        }
+
+        .navbar .nav-links li a:hover {
+            color: #007bff;
+        }
+
+        .navbar .nav-links li a::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            background-color: #007bff;
+            bottom: -5px;
+            left: 0;
+            transition: width 0.3s ease;
+        }
+
+        .navbar .nav-links li a:hover::after {
+            width: 100%;
+        }
+
+        .navbar .menu-icon {
+            display: none;
+            cursor: pointer;
+            width: 30px;
+            height: 25px;
+            position: relative;
+            z-index: 1001;
+        }
+
+        .navbar .menu-icon .bar {
+            width: 100%;
+            height: 3px;
+            background-color: #333;
+            margin: 5px 0;
+            transition: all 0.3s ease;
+            display: block;
+        }
+
+        /* Overlay */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 998;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Content styling */
+        .content {
+            margin-top: 100px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+        }
+
+        .section {
+            height: 400px;
+            margin: 20px 0;
+            background-color: white;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        @media screen and (max-width: 768px) {
+            .navbar {
+                padding: 0 20px;
+            }
+
+            .navbar .nav-links {
+                position: fixed;
+                top: 0;
+                right: -220px;
+                /* Off-screen */
+                background-color: white;
+                width: 200px;
+                height: 100vh;
+                flex-direction: column;
+                align-items: flex-start;
+                justify-content: flex-start;
+                padding: 80px 15px 20px 15px;
+                transition: all 0.3s ease;
+                box-shadow: -3px 0 15px rgba(0, 0, 0, 0.15);
+                border-left: 1px solid #eaeaea;
+                z-index: 999;
+            }
+
+            .navbar .nav-links.active {
+                right: 0;
+            }
+
+            .navbar .nav-links li {
+                margin: 8px 0;
+                width: 100%;
+            }
+
+            .navbar .nav-links li a {
+                display: flex;
+                align-items: center;
+                padding: 12px;
+                border-radius: 8px;
+                transition: all 0.2s ease;
+            }
+
+            .navbar .nav-links li a i {
+                margin-right: 12px;
+                font-size: 18px;
+                width: 24px;
+                text-align: center;
+                color: #007bff;
+            }
+
+            .navbar .nav-links li a:hover {
+                background-color: #f0f7ff;
+            }
+
+            /* Remove underline effect in mobile view */
+            .navbar .nav-links li a::after {
+                display: none;
+            }
+
+            .navbar .menu-icon {
+                display: block;
+            }
+
+            .navbar .menu-icon.active .bar:nth-child(1) {
+                transform: rotate(45deg) translate(7px, 6px);
+            }
+
+            .navbar .menu-icon.active .bar:nth-child(2) {
+                opacity: 0;
+            }
+
+            .navbar .menu-icon.active .bar:nth-child(3) {
+                transform: rotate(-45deg) translate(7px, -6px);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar">
+        <a href="#" class="logo"><i class="fas fa-layer-group"></i><span>Aipt</span></a>
+        <ul class="nav-links">
+            <li><a href="#">Home</a></li>
+            <li><a href="#"></i>About Us</a></li>
+            <li><a href="#"></i>Contact</a></li>
+            <li><a href="#"></i>Print</a></li>
+        </ul>
+        <div class="menu-icon">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </div>
+    </nav>
+
+    <!-- Background overlay when menu is open -->
+    <div class="overlay"></div>
+
+    <div class="content">
+        <h1>Welcome to our website</h1>
+        <div class="section" id="home">Home Section</div>
+        <div class="section" id="about">About Us Section</div>
+        <div class="section" id="contact">Contact Section</div>
+        <div class="section" id="print">Print Section</div>
+    </div>
+
+    <script>
+        const menuIcon = document.querySelector('.menu-icon');
+        const navLinks = document.querySelector('.nav-links');
+        const overlay = document.querySelector('.overlay');
+
+        menuIcon.addEventListener('click', () => {
+            menuIcon.classList.toggle('active');
+            navLinks.classList.toggle('active');
+            overlay.classList.toggle('active');
+            document.body.style.overflow = navLinks.classList.contains('active') ? 'hidden' : 'auto';
+        });
+
+        // Close menu when clicking any link
+        document.querySelectorAll('.nav-links li a').forEach(link => {
+            link.addEventListener('click', () => {
+                menuIcon.classList.remove('active');
+                navLinks.classList.remove('active');
+                overlay.classList.remove('active');
+                document.body.style.overflow = 'auto';
+            });
+        });
+
+        // Close menu when clicking on overlay
+        overlay.addEventListener('click', () => {
+            menuIcon.classList.remove('active');
+            navLinks.classList.remove('active');
+            overlay.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        });
+
+        // Scroll effect
+        window.addEventListener('scroll', () => {
+            const navbar = document.querySelector('.navbar');
+            if (window.scrollY > 50) {
+                navbar.style.height = '60px';
+                navbar.style.boxShadow = '0 2px 15px rgba(0, 0, 0, 0.2)';
+            } else {
+                navbar.style.height = '70px';
+                navbar.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.1)';
+            }
+        });
+    </script>
+</body>
+
+</html>
