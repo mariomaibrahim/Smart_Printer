@@ -1,0 +1,800 @@
+<!DOCTYPE html>  
+<html lang="en">  
+<head>  
+    <meta charset="UTF-8">  
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">  
+    <title> package class="html"</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" 
+          integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" 
+          crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>  
+        @import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap");
+        @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap");
+
+        * {  
+            margin: 0;  
+            padding: 0;  
+            box-sizing: border-box;  
+            font-family: 'Poppins', sans-serif;  
+        }  
+
+        body {  
+            margin-top: 0;
+            background: rgb(255, 255, 255);  
+            display: flex;  
+            flex-direction: column;  
+            align-items: center;  
+            position: relative;  
+            overflow-x: hidden;
+            min-height: 100vh;
+        }  
+
+        .navbar {  
+            margin-bottom: 0;
+            background-color: #4169E1;  
+            padding: 15px 30px;  
+            width: 100%;  
+            display: flex;  
+            justify-content: space-between;  
+            align-items: center;  
+            color: white;  
+        }   
+
+        .navbar .logo {  
+            font-size: 24px;  
+            font-weight: bold;  
+        }  
+
+        .navbar .nav-links {  
+            list-style: none;  
+            display: flex;  
+            gap: 20px;  
+        }  
+
+        .navbar .nav-links li a {  
+            color: white;  
+            text-decoration: none;  
+            font-weight: 500;  
+            transition: color 0.3s;  
+        }  
+
+        .navbar .nav-links li a:hover {  
+            color: #00cc99;  
+        }  
+
+        body:before {  
+            content: '';  
+            position: absolute;  
+            width: 150%;  
+            height: 150%;  
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 10%, transparent 10.5%);  
+            background-size: 25px 25px;  
+            animation: moveBackground 20s linear infinite;  
+            opacity: 0.5;
+            z-index: -1;
+        }  
+
+        @keyframes moveBackground {  
+            0% {  
+                transform: translateX(0) translateY(0);  
+            }  
+
+            100% {  
+                transform: translateX(-50px) translateY(-50px);  
+            }  
+        }  
+
+        .profile-container {  
+            background-color: rgba(255, 255, 255, 0.95);  
+            border-radius: 0;  
+            box-shadow: none;  
+            width: 100vw;  
+            height: 100vh;
+            overflow: hidden;
+            display: flex;  
+            animation: fadeIn 1s ease-in-out;  
+            margin-top: 0x;
+            
+        }  
+
+        @keyframes fadeIn {  
+            from {  
+                opacity: 0;  
+                transform: translateY(20px);  
+            }  
+
+            to {  
+                opacity: 1;  
+                transform: translateY(0);  
+            }  
+        }  
+
+        .user-info {  
+            padding: 40px;  
+            width: 60%;  
+        }  
+
+        .balance-section {  
+            background: linear-gradient(135deg, #4169E1, #6495ED);  
+            color: white;  
+            width: 40%;  
+            padding: 40px;  
+            display: flex;  
+            flex-direction: column;  
+            justify-content: center;  
+            align-items: center;  
+            position: relative;  
+            overflow: hidden;  
+        }  
+
+        .balance-section:before {  
+            content: '';  
+            position: absolute;  
+            top: -10%;  
+            left: -10%;  
+            width: 120%;  
+            height: 120%;  
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.15) 10%, transparent 10.5%);  
+            background-size: 20px 20px;  
+            animation: rotateBackground 15s linear infinite;  
+            z-index: 0;  
+        }  
+
+        @keyframes rotateBackground {  
+            0% {  
+                transform: rotate(0deg);  
+            }  
+
+            100% {  
+                transform: rotate(360deg);  
+            }  
+        }  
+
+        .profile-header {  
+            text-align: center;  
+            margin-bottom: 30px;  
+        }  
+
+        .profile-picture-placeholder {  
+            width: 120px;  
+            height: 120px;  
+            border-radius: 50%;  
+            border: 5px solid #4169E1;  
+            padding: 3px;  
+            background-color: #f0f4ff;  
+            margin: 0 auto 15px;  
+            box-shadow: 0 5px 15px rgba(0, 0, 51, 0.2);  
+            display: flex;  
+            align-items: center;  
+            justify-content: center;  
+            position: relative;  
+        }  
+
+        .user-icon:before {  
+            content: '';  
+            position: absolute;  
+            width: 50px;  
+            height: 50px;  
+            border-radius: 50%;  
+            background-color: #b3c6ff;  
+            top: 20px;  
+        }  
+
+        .user-icon:after {  
+            content: '';  
+            position: absolute;  
+            width: 80px;  
+            height: 40px;  
+            border-radius: 40px 40px 0 0;  
+            background-color: #b3c6ff;  
+            top: 75px;  
+        }  
+
+        .field-container {  
+            margin-bottom: 20px;  
+        }  
+
+        .field-label {  
+            font-weight: 600;  
+            color: #333;  
+            font-size: 14px;  
+            margin-bottom: 5px;  
+            display: block;  
+        }  
+
+        .field-value {  
+            background-color: #f7f9fc;  
+            border: 1px solid #e1e5ee;  
+            border-radius: 8px;  
+            padding: 12px 15px;  
+            font-size: 16px;  
+            color: #333;  
+            width: 100%;  
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);  
+            transition: all 0.3s ease;  
+        }  
+
+        .field-value:hover {  
+            box-shadow: 0 5px 15px rgba(0, 0, 51, 0.1);  
+            transform: translateY(-2px);  
+        }  
+
+        .balance-content {  
+            position: relative;  
+            z-index: 1;  
+            text-align: center;  
+            display: flex;  
+            flex-direction: column;  
+            align-items: center;  
+        }  
+
+        .balance-title {  
+            font-size: 28px;  
+            font-weight: 700;  
+            margin-bottom: 30px;  
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);  
+        }  
+
+        .balance-amount {  
+            background-color: white;  
+            color: #ffcc00;  
+            font-size: 26px;  
+            font-weight: 700;  
+            border-radius: 50px;  
+            padding: 15px 30px;  
+            display: inline-flex;  
+            align-items: center;  
+            margin-bottom: 30px;  
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);  
+        }  
+
+        .coin-img {  
+            width: 60px;  
+            height: 60px;  
+            object-fit: contain;  
+            border-radius: 50%;  
+            margin-right: 20px;  
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);  
+        }  
+
+        .btn {  
+            background-color: #ffcc00;  
+            color: white;  
+            border: none;  
+            border-radius: 50px;  
+            padding: 12px 30px;  
+            font-size: 16px;  
+            font-weight: 600;  
+            cursor: pointer;  
+            transition: all 0.3s ease;  
+            box-shadow: 0 5px 15px rgba(255, 204, 0, 0.4);  
+        }  
+
+        .btn:hover {  
+            background-color: #e6b800;  
+            transform: translateY(-3px);  
+            box-shadow: 0 8px 20px rgba(255, 204, 0, 0.5);  
+        }  
+
+        .payment-popup {  
+            position: fixed;  
+            top: 0;  
+            left: 0;  
+            width: 100vw;  
+            height: 100vh;  
+            background-color: rgba(0, 0, 0, 0.5);  
+            display: none;  
+            justify-content: center;  
+            align-items: center;  
+            z-index: 999;  
+        }  
+
+        .payment-box {  
+            background-color: white;  
+            padding: 30px;  
+            border-radius: 16px;  
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);  
+            text-align: center;  
+            max-width: 400px;  
+            width: 90%;  
+        }  
+
+        .pay-btn {  
+            background-color: #ffcc00;  
+            color: white;  
+            margin-right: 10px;  
+        }  
+
+        .close-btn {  
+            background-color: #ccc;  
+            color: black;  
+        }  
+
+        /* New Footer Styles */
+        footer {
+            position: relative;
+            width: 100%;
+            height: auto;
+            padding: 30px 0;
+            background: #ffffff;
+            margin-top: auto;
+        }
+
+        .footer-container {
+            width: 100%;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            grid-gap: 20px;
+            padding: 0 20px;
+        }
+
+        .main-logo {
+            width: 140px;
+            height: auto;
+            margin: 0 auto 5px auto;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+            transition: transform 0.3s ease;
+            margin-left: 160px;
+        }
+
+        .main-logo:hover {
+            transform: scale(1.10);
+        }
+
+        .footer-p {
+            font-size: 15px;
+            line-height: 1.5;
+            color: #000;
+            max-width: 500px;
+            padding: 0 40px;
+            margin-left: 10px;
+            margin-top: -20px;
+        }
+
+        .footer-items {
+            display: flex;
+            gap: 20px;
+            margin-top: 30px;
+            list-style: none;
+            padding: 0;
+            margin-left: 80px;
+            margin-top: 20px;
+        }
+
+        .footer-items li {
+            width: 40px;
+            height: 40px;
+            background-color: #000;
+            border-radius: 10%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.3s;
+        }
+
+        .footer-items li a {
+            color: #ffffff;
+            font-size: 16px;
+            text-decoration: none;
+        }
+
+        .footer-items li:hover {
+            background-color: #2563eb;
+        }
+
+        .footer-link {
+            width: auto;
+            margin-left: -20px;
+        }
+
+        .footer-link ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .footer-link ul li {
+            margin-bottom: 10px;
+        }
+
+        .footer-link ul li a {
+            text-decoration: none;
+            color: #000;
+            font-size: 22px;
+        }
+
+        .footer-link ul li a:hover {
+            color: #2563eb;
+        }
+
+        .footer-h1 {
+            font-size: 25px;
+            color: #000;
+            margin-bottom: 10px;
+        }
+
+        .footer-menu {
+            width: auto;
+            margin-left: -50px;
+        }
+
+        .footer-menu ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .footer-menu ul li {
+            margin-bottom: 10px;
+        }
+
+        .footer-menu ul li a {
+            text-decoration: none;
+            color: #000;
+            font-size: 22px;
+        }
+
+        .footer-menu ul li a:hover {
+            color: #2563eb;
+        }
+
+        .footer-h2 {
+            font-size: 25px;
+            color: #000;
+            margin-bottom: 10px;
+        }
+
+        .footer-contact {
+            justify-content: flex-end;
+            margin-left: -80px;
+        }
+
+        .footer-contact li {
+            display: grid;
+            grid-template-columns: 30px 1fr;
+            margin-bottom: 30px;
+            list-style: none;
+        }
+
+        .footer-contact li span {
+            color: #000;
+            font-size: 20px;
+        }
+
+        .footer-contact li a {
+            color: #000;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .footer-contact li a:hover {
+            color: #2563eb;
+        }
+
+        .footer-h3 {
+            font-size: 30px;
+            color: #000;
+            margin-bottom: 20px;
+            margin-top: 0;
+        }
+
+        .logos {
+            display: flex;
+            align-items: center;
+            gap: 40px;
+            margin-top: 50px;
+            margin-left: 0;
+        }
+
+        .logos img {
+            width: 60px;
+            height: 60px;
+            border-radius: 20%;
+            object-fit: cover;
+            background-color: #fff;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .logos img:hover {
+            transform: scale(1.1);
+        }
+
+        .small-logo, .small-log, .small-lo {
+            width: 60px;
+            height: 60px;
+            border-radius: 20%;
+            object-fit: cover;
+            background-color: #ffffff;
+        }
+
+        .small-logo {
+            margin-left: -20px;
+            margin-right: 0px;
+        }
+
+        .small-log, .small-lo {
+            margin-left: -10px;
+        }
+
+        .footer-line {
+            width: 100%;
+            background: #ffffff;
+            padding: 20px 0 30px;
+            text-align: center;
+            color: #000;
+            border-top: 2px solid #000;
+        }
+
+        @media (max-width: 1024px) {
+            .footer-container {
+                grid-template-columns: 1fr 1fr;
+                text-align: center;
+            }
+            .main-logo {
+                margin-left: auto;
+                margin-right: auto;
+            }
+            .footer-link,
+            .footer-menu,
+            .footer-contact {
+                margin-left: 0;
+            }
+            .footer-p {
+                margin: 0 auto;
+                padding: 0 20px;
+            }
+            .footer-items {
+                justify-content: center;
+                margin-left: 0;
+            }
+            .logos {
+                justify-content: center;
+                margin-left: 0;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .profile-container {
+                flex-direction: column;
+            }
+            .profile-header {
+                margin-bottom: 20px;
+            }
+
+            .user-info,
+            .balance-section {
+                width: 100%;
+            }
+
+            .navbar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .field-value {
+                font-size: 14px;
+            }
+            .field-label {
+                font-size: 12px;
+            }
+            .profile-picture-placeholder {
+                width: 100px;
+                height: 100px;
+            }
+            .btn {
+                padding: 10px 20px;
+                font-size: 14px;
+            }
+            .navbar .nav-links {
+                flex-direction: column;
+                gap: 10px;
+                margin-top: 10px;
+            }
+
+            .footer-container {
+                grid-template-columns: 1fr;
+                text-align: center;
+                gap: 40px;
+            }
+            .footer-items {
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+            .footer-contact li {
+                grid-template-columns: 1fr;
+                justify-items: center;
+            }
+            .footer-contact li p,
+            .footer-contact li a {
+                text-align: center;
+            }
+            .logos {
+                justify-content: center;
+                flex-wrap: wrap;
+                gap: 20px;
+            }
+        }
+    </style>
+</head>  
+<body>  
+    <div class="payment-popup" id="paymentPopup">  
+        <div class="payment-box">  
+            <h3>Confirm Your Payment</h3>  
+            <p>Are you sure you want to proceed with the shipping?</p>  
+            <button class="btn pay-btn">Pay</button>  
+            <button class="btn close-btn" onclick="closePopup()">Cancel
+
+            </button>
+
+            </button>  
+        </div>  
+    </div>  
+    
+    <nav class="navbar">  
+        <div class="logo">My Profile</div>  
+        <ul class="nav-links">  
+            <li><a href="#">Home</a></li>  
+            <li><a href="#">Setting</a></li>  
+            <li><a href="#">Support</a></li>  
+            <li><a href="#">Log Out</a></li>  
+        </ul>  
+    </nav>  
+
+    <div class="profile-container">  
+        <div class="user-info">  
+            <div class="profile-header">  
+                <div class="profile-picture-placeholder">  
+                    <i class="user-icon"></i>  
+                </div>  
+            </div>  
+
+            <div class="field-container">  
+                <label class="field-label">Name</label>  
+                <div class="field-value">Hager Taha</div>  
+            </div>  
+
+            <div class="field-container">  
+                <label class="field-label">Phone</label>  
+                <div class="field-value">+20 123 456 7890</div>  
+            </div>  
+
+            <div class="field-container">  
+                <label class="field-label">Email</label>  
+                <div class="field-value">Hager.Taha@example.com</div>  
+            </div>  
+
+            <div class="field-container">  
+                <label class="field-label">ID</label>  
+                <div class="field-value">AIDP-2320712</div>  
+            </div>  
+        </div>  
+
+        <div class="balance-section">  
+            <div class="balance-content">  
+                <h2 class="balance-title">Your Balance</h2>  
+                <div class="balance-amount">  
+                    <img src="AITP.jpg" class="coin-img">
+                    <span>23</span>  
+                </div>  
+                <button class="btn" id="shippingBtn">Shipping</button>  
+            </div>  
+        </div>  
+    </div>  
+
+    <!-- New Footer -->
+    <footer>
+        <div class="footer-container">
+            <div class="footer-logo">
+                <img class="main-logo" src="/api/placeholder/140/80" alt="Logo">
+                <p class="footer-p">
+                    This modern printer lets you print documents and photos easily.
+                    You can upload your files online, choose color or black & white, and select the number of copies.
+                    After online payment, you can collect your prints once they are ready.
+                </p>
+                <div class="footer-items">
+                    <li><a href="#"><i class="fab fa-facebook-f"></i></a></li>
+                    <li><a href="#"><i class="fab fa-instagram"></i></a></li>
+                    <li><a href="#"><i class="fab fa-linkedin-in"></i></a></li>
+                    <li><a href="#"><i class="fab fa-twitter"></i></a></li>
+                    <li><a href="#"><i class="fa-brands fa-youtube"></i></a></li>
+                </div>
+            </div>
+            <div class="footer-link">
+                <h2 class="footer-h1">Discover Us</h2>
+                <ul>
+                    <li><a href="#">Home</a></li>
+                    <li><a href="#">About us</a></li>
+                    <li><a href="#">Features</a></li>
+                    <li><a href="#">Directions</a></li>
+                    <li><a href="#">Contact</a></li>
+                </ul>
+            </div>
+            <div class="footer-menu">
+                <h2 class="footer-h2">My Orders</h2>
+                <ul>
+                    <li><a href="#">MyAccount</a></li>
+                    <li><a href="#">Login</a></li>
+                    <li><a href="#">Logout</a></li>
+                    <li><a href="#">Signup</a></li>
+                    <li><a href="#">Purchase</a></li>
+                </ul>
+            </div>
+            <div class="footer-contact">
+                <h2 class="footer-h3">Contact us</h2>
+                <ul>
+                    <li>
+                        <span><i class="fa-solid fa-phone"></i></span>
+                        <p><a href="tel:+12345678900">+1 234 567 8900</a></p>
+                    </li>
+                    <li>
+                        <span><i class="fa-solid fa-envelope"></i></span>
+                        <p><a href="mailto:Knowmore@emailto.meee">Knowmore@emailto.meee</a></p>
+                    </li>
+                </ul>
+                <div class="logos">
+                    <img class="small-logo" src="/api/placeholder/60/60" alt="logo">
+                    <img class="small-log" src="/api/placeholder/60/60" alt="logo">
+                    <img class="small-lo" src="/api/placeholder/60/60" alt="logo">
+                </div>
+            </div>
+        </div>
+    </footer>
+    <div class="footer-line">
+        
+    </div>
+
+    <div id="paymentPopup" class="payment-popup">  
+        <div class="payment-box">  
+            <h3>Payment Details</h3>  
+            <p>You are about to recharge your balance</p>
+
+            <a href="backag.html">
+            <button class="btn pay-btn">Pay New</button> 
+            </a> 
+            <button class="btn close-btn" onclick="closePopup()">Cancel</button>  
+        </div>  
+    </div>
+
+    <script>  
+        // Fix duplicate ID issue
+        const paymentPopups = document.querySelectorAll('.payment-popup');
+        const shippingBtn = document.getElementById('shippingBtn');
+        
+        // Remove duplicate popup
+        if (paymentPopups.length > 1) {
+            paymentPopups[1].remove();
+        }
+        
+        const popup = document.getElementById('paymentPopup');
+        
+        function closePopup() {
+            popup.style.display = 'none';
+        }
+        
+        shippingBtn.addEventListener('click', () => {
+            popup.style.display = 'flex';
+        });
+        
+        // Color button functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("تم تحميل الصفحة!");
+            
+            if (document.querySelectorAll(".color-btn").length > 0) {
+                document.querySelectorAll(".color-btn").forEach((button) => {
+                    button.addEventListener("click", function () {
+                        document.querySelectorAll(".color-btn").forEach((btn) => btn.classList.remove("active"));
+                        this.classList.add("active");
+                    });
+                });
+            }
+            
+            if (document.querySelectorAll(".layout-box").length > 0) {
+                document.querySelectorAll(".layout-box").forEach((box) => {
+                    box.addEventListener("click", function () {
+                        document.querySelectorAll(".layout-box").forEach((bx) => bx.classList.remove("active"));
+                        this.classList.add("active");
+                    });
+                });
+            }
+        });
+    </script>
+</body>  
+                        </html>
