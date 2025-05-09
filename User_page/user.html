@@ -3,37 +3,87 @@
 <head>  
     <meta charset="UTF-8">  
     <meta name="viewport" content="width=device-width, initial-scale=1.0">  
-    <title>User Profile Package</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" 
-          integrity="sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA==" 
+    <title>Smart Printer - User Profile</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" 
+          integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" 
           crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="user.css">
 </head>  
 <body>  
-    <!-- شريط التنقل -->
-    <nav class="navbar">  
-        <div class="logo">My Profile</div>
-        <div class="menu-toggle" id="mobile-menu">
-            <span></span>
-            <span></span>
-            <span></span>
+    <!-- Navigation Bar -->
+    <div class="navbar">
+        <div class="logo">
+            <div class="logo-icon">AITP</div>
+            <span>Smart Printer</span>
         </div>
-        <ul class="nav-links" id="navLinks">  
-            <li><a href="#">Home</a></li>  
-            <li><a href="#">Setting</a></li>  
-            <li><a href="#">Support</a></li>  
-            <li><a href="#">Log Out</a></li>  
-        </ul>  
-    </nav>  
 
-    <!-- حاوية الملف الشخصي -->
+        <div class="nav-links">
+            <a href="../Home_page/home_page.html">Home</a>
+            <a href="../Home_page/home_page.html#features">Features</a>
+            <a href="../Home_page/home_page.html#how-it-works">How It Works</a>
+            <a href="../Home_page/home_page.html#contact_us">Contact Us</a>
+        </div>
+
+        <div class="right-section">
+            <a class="btn btn-print" href="../Home_page/Options_page.html">
+                <i class="fa-solid fa-print"></i> Print Now
+            </a>
+            <button class="btn btn-logout" id="logoutBtn">
+                <i class="fas fa-sign-out-alt"></i> Log out
+            </button>
+            <div class="menu-toggle" role="button" aria-label="Toggle menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Sidebar -->
+    <div class="sidebar" role="navigation" aria-label="Mobile navigation">
+        <div class="sidebar-header">
+            <div class="logo">
+                <div class="logo-icon">AITP</div>
+                <span>Smart Printer</span>
+            </div>
+            <div class="close-sidebar" role="button" aria-label="Close menu">×</div>
+        </div>
+
+        <div class="sidebar-nav">
+            <a href="../Home_page/home_page.html">Home</a>
+            <a href="../Home_page/home_page.html#features">Features</a>
+            <a href="../Home_page/home_page.html#how-it-works">How It Works</a>
+            <a href="../Home_page/Options_page.html">Print Now</a>
+            <a href="../Home_page/home_page.html#contact_us">Contact Us</a>
+        </div>
+
+        <div class="sidebar-footer">
+            <button class="btn btn-logout" id="mobileSidebarLogout">
+                <i class="fas fa-sign-out-alt"></i> Log out
+            </button>
+        </div>
+    </div>
+
+    <div class="overlay"></div>
+
+    <!-- Payment Popup -->
+    <div class="payment-popup" id="paymentPopup">  
+        <div class="payment-box">  
+            <h3>Confirm Your Payment</h3>  
+            <p>Are you sure you want to proceed with the shipping?</p>  
+            <button class="btn pay-btn" id="confirmPayBtn">Pay</button>  
+            <button class="btn close-btn" id="cancelBtn">Cancel</button>
+        </div>  
+    </div>  
+
+    <!-- Main Content -->
     <div class="profile-container">  
         <div class="user-info">  
             <div class="profile-header">  
                 <div class="profile-picture-placeholder">  
-                    <i class="user-icon"></i>  
+                    <i class="fas fa-user user-icon"></i>  
                 </div>
-                <h2>Welcome, Hager Taha</h2>
+                <h2>User Profile</h2>  
             </div>  
 
             <div class="field-container">  
@@ -69,66 +119,6 @@
         </div>  
     </div>  
 
-    <!-- نافذة الدفع المنبثقة -->
-    <div id="paymentPopup" class="payment-popup">  
-        <div class="payment-box">  
-            <h3>Confirm Your Payment</h3>  
-            <p>Are you sure you want to proceed with the shipping?</p>  
-            <a href="../Random_page/packages_page/package.html">
-                <button class="btn pay-btn">Pay Now</button> 
-            </a> 
-            <button class="btn close-btn" id="cancelBtn">Cancel</button>  
-        </div>  
-    </div>
-
-    <script>  
-        // تهيئة عناصر DOM
-        const paymentPopup = document.getElementById('paymentPopup');
-        const shippingBtn = document.getElementById('shippingBtn');
-        const cancelBtn = document.getElementById('cancelBtn');
-        const mobileMenu = document.getElementById('mobile-menu');
-        const navLinks = document.getElementById('navLinks');
-        
-        // إخفاء نافذة الدفع
-        function closePopup() {
-            paymentPopup.style.display = 'none';
-        }
-        
-        // إظهار نافذة الدفع عند النقر على زر الشحن
-        shippingBtn.addEventListener('click', () => {
-            paymentPopup.style.display = 'flex';
-        });
-        
-        // إغلاق نافذة الدفع عند النقر على زر الإلغاء
-        cancelBtn.addEventListener('click', closePopup);
-        
-        // تفعيل قائمة الهاتف المحمول
-        mobileMenu.addEventListener('click', () => {
-            navLinks.classList.toggle('active');
-        });
-        
-        // وظائف إضافية من الكود الأصلي
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log("تم تحميل الصفحة!");
-            
-            if (document.querySelectorAll(".color-btn").length > 0) {
-                document.querySelectorAll(".color-btn").forEach((button) => {
-                    button.addEventListener("click", function() {
-                        document.querySelectorAll(".color-btn").forEach((btn) => btn.classList.remove("active"));
-                        this.classList.add("active");
-                    });
-                });
-            }
-            
-            if (document.querySelectorAll(".layout-box").length > 0) {
-                document.querySelectorAll(".layout-box").forEach((box) => {
-                    box.addEventListener("click", function() {
-                        document.querySelectorAll(".layout-box").forEach((bx) => bx.classList.remove("active"));
-                        this.classList.add("active");
-                    });
-                });
-            }
-        });
-    </script>
+    <script src="user.js"></script>
 </body>  
 </html>
