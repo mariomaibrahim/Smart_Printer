@@ -364,75 +364,77 @@
 <body>
     <div class="container" id="container">
         <!-- Mobile header with icons (visible only on mobile) -->
+        <section id="sign-up">
+            <div class="form-container sign-up" id="sign-up">
+                <form novalidate>
+                    <img src="undraw_push-notifications_5z1s.svg" alt="">
+                    <h1>Create Account</h1>
+                    <div class="social-icons">
+                        <a href="#" class="icon"><i class="fa-brands fa-google-plus-g"></i></a>
+                        <a href="#" class="icon"><i class="fa-brands fa-facebook-f"></i></a>
+                        <a href="#" class="icon"><i class="fa-brands fa-github"></i></a>
+                        <a href="#" class="icon"><i class="fa-brands fa-linkedin-in"></i></a>
+                    </div>
+                    <span>or use your email for registeration</span>
+                    <input type="text" placeholder="Name" id="signup-name" required>
+                    <div class="error-message" id="name-error">Name is required</div>
 
-        <div class="form-container sign-up">
-            <form novalidate>
-                <img src="undraw_push-notifications_5z1s.svg" alt="">
-                <h1>Create Account</h1>
-                <div class="social-icons">
-                    <a href="#" class="icon"><i class="fa-brands fa-google-plus-g"></i></a>
-                    <a href="#" class="icon"><i class="fa-brands fa-facebook-f"></i></a>
-                    <a href="#" class="icon"><i class="fa-brands fa-github"></i></a>
-                    <a href="#" class="icon"><i class="fa-brands fa-linkedin-in"></i></a>
-                </div>
-                <span>or use your email for registeration</span>
-                <input type="text" placeholder="Name" id="signup-name" required>
-                <div class="error-message" id="name-error">Name is required</div>
+                    <input type="text" placeholder="ID" id="signup-id" required>
+                    <div class="error-message" id="id-error">ID is required</div>
 
-                <input type="text" placeholder="ID" id="signup-id" required>
-                <div class="error-message" id="id-error">ID is required</div>
+                    <input type="email" placeholder="Email" id="signup-email" required>
+                    <div class="error-message" id="signup-email-error">Please enter a valid email address</div>
 
-                <input type="email" placeholder="Email" id="signup-email" required>
-                <div class="error-message" id="signup-email-error">Please enter a valid email address</div>
+                    <input type="password" placeholder="Password" id="signup-password" required>
+                    <div class="error-message" id="password-error">Password is required</div>
+                    <button type="submit">Sign Up</button>
+                    <!-- Message for users who already have an account -->
+                    <div class="account-message">
+                        Already have an account? <a href="#" id="go-to-signin">Sign in now</a>
+                    </div>
+                </form>
+            </div>
+        </section>
+        <section id="sign-in">
+            <div class="form-container sign-in">
+                <form novalidate>
+                    <img src="undraw_login_weas.svg" alt="">
+                    <h1>Sign In</h1>
+                    <div class="social-icons">
+                        <a href="#" class="icon"><i class="fa-brands fa-google-plus-g"></i></a>
+                        <a href="#" class="icon"><i class="fa-brands fa-facebook-f"></i></a>
+                        <a href="#" class="icon"><i class="fa-brands fa-github"></i></a>
+                        <a href="#" class="icon"><i class="fa-brands fa-linkedin-in"></i></a>
+                    </div>
+                    <span>or use your email password</span>
+                    <input type="email" placeholder="Email" id="signin-email" required>
+                    <div class="error-message" id="signin-email-error">Please enter a valid email address</div>
 
-                <input type="password" placeholder="Password" id="signup-password" required>
-                <div class="error-message" id="password-error">Password is required</div>
-                <button type="submit">Sign Up</button>
-                <!-- Message for users who already have an account -->
-                <div class="account-message">
-                    Already have an account? <a href="#" id="go-to-signin">Sign in now</a>
-                </div>
-            </form>
-        </div>
-        <div class="form-container sign-in">
-            <form novalidate>
-                <img src="undraw_login_weas.svg" alt="">
-                <h1>Sign In</h1>
-                <div class="social-icons">
-                    <a href="#" class="icon"><i class="fa-brands fa-google-plus-g"></i></a>
-                    <a href="#" class="icon"><i class="fa-brands fa-facebook-f"></i></a>
-                    <a href="#" class="icon"><i class="fa-brands fa-github"></i></a>
-                    <a href="#" class="icon"><i class="fa-brands fa-linkedin-in"></i></a>
-                </div>
-                <span>or use your email password</span>
-                <input type="email" placeholder="Email" id="signin-email" required>
-                <div class="error-message" id="signin-email-error">Please enter a valid email address</div>
-
-                <input type="password" placeholder="Password" id="signin-password" required>
-                <div class="error-message" id="signin-password-error">Password is required</div>
-                <a href="#">Forget Your Password?</a>
-                <button type="submit">Sign In</button>
-                <!-- Message for users without an account -->
-                <div class="account-message">
-                    Don't have an account? <a href="#" id="go-to-signup">Sign up now</a>
-                </div>
-            </form>
-        </div>
-        <div class="toggle-container">
-            <div class="toggle">
-                <div class="toggle-panel toggle-left">
-                    <h1>Welcome Back!</h1>
-                    <p>Enter your personal details to use all of site features</p>
-                    <button class="hidden" id="login">Sign In</button>
-                </div>
-                <div class="toggle-panel toggle-right">
-                    <h1>Hello, Friend!</h1>
-                    <p>Register with your personal details to use all of site features</p>
-                    <button class="hidden" id="register">Sign Up</button>
+                    <input type="password" placeholder="Password" id="signin-password" required>
+                    <div class="error-message" id="signin-password-error">Password is required</div>
+                    <a href="#">Forget Your Password?</a>
+                    <button type="submit">Sign In</button>
+                    <!-- Message for users without an account -->
+                    <div class="account-message">
+                        Don't have an account? <a href="#" id="go-to-signup">Sign up now</a>
+                    </div>
+                </form>
+            </div>
+            <div class="toggle-container">
+                <div class="toggle">
+                    <div class="toggle-panel toggle-left">
+                        <h1>Welcome Back!</h1>
+                        <p>Enter your personal details to use all of site features</p>
+                        <button class="hidden" id="login">Sign In</button>
+                    </div>
+                    <div class="toggle-panel toggle-right">
+                        <h1>Hello, Friend!</h1>
+                        <p>Register with your personal details to use all of site features</p>
+                        <button class="hidden" id="register">Sign Up</button>
+                    </div>
                 </div>
             </div>
-        </div>
-
+        </section>
 
     </div>
 
