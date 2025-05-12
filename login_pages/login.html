@@ -616,6 +616,67 @@
             }
         });
     </script>
+
+    <script>
+    // Validation for Sign Up
+    document.querySelector("#sign-up form").addEventListener("submit", function (e) {
+        e.preventDefault(); // يمنع الإرسال مؤقتًا
+
+        let valid = true;
+
+        // Elements
+        const name = document.getElementById("signup-name");
+        const id = document.getElementById("signup-id");
+        const email = document.getElementById("signup-email");
+        const password = document.getElementById("signup-password");
+
+        const nameError = document.getElementById("name-error");
+        const idError = document.getElementById("id-error");
+        const emailError = document.getElementById("signup-email-error");
+        const passwordError = document.getElementById("password-error");
+
+        // Reset styles
+        [name, id, email, password].forEach(input => input.classList.remove("error"));
+        [nameError, idError, emailError, passwordError].forEach(error => error.style.display = "none");
+
+        // Name
+        if (name.value.trim() === "") {
+            name.classList.add("error");
+            nameError.style.display = "block";
+            valid = false;
+        }
+
+        // ID - لازم يكون أرقام وطوله مثلاً 8 أرقام
+        if (!/^\d{8}$/.test(id.value.trim())) {
+            id.classList.add("error");
+            idError.textContent = "ID must be 8 digits";
+            idError.style.display = "block";
+            valid = false;
+        }
+
+        // Email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email.value.trim())) {
+            email.classList.add("error");
+            emailError.style.display = "block";
+            valid = false;
+        }
+
+        // Password - لازم تكون أكتر من 6 حروف وفيها أرقام وحروف
+        if (password.value.length < 6 || !/\d/.test(password.value) || !/[a-z]/i.test(password.value)) {
+            password.classList.add("error");
+            passwordError.textContent = "Password must be at least 6 characters, include letters and numbers.";
+            passwordError.style.display = "block";
+            valid = false;
+        }
+
+        if (valid) {
+            alert("Form submitted successfully!");
+            // تقدروا تبعتوا البيانات هنا
+            // this.submit(); لو فيه باك اند
+        }
+    });
+</script>
 </body>
 
 </html>
