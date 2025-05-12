@@ -1,4 +1,4 @@
-نعم-- Drop existing tables if they exist (for clean setup)
+-- Drop existing tables if they exist (for clean setup)
 DROP TABLE IF EXISTS daily_reports;
 DROP TABLE IF EXISTS admin_logs;
 DROP TABLE IF EXISTS notifications;
