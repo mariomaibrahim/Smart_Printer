@@ -1,3 +1,5 @@
+CREATE DATABASE IF NOT EXISTS aitp;
+USE aitp;
 -- Drop existing tables if they exist (for clean setup)
 DROP TABLE IF EXISTS daily_reports;
 DROP TABLE IF EXISTS admin_logs;
