@@ -1,4 +1,4 @@
--- Drop existing tables if they exist (for clean setup)
+نعم-- Drop existing tables if they exist (for clean setup)
 DROP TABLE IF EXISTS daily_reports;
 DROP TABLE IF EXISTS admin_logs;
 DROP TABLE IF EXISTS notifications;
@@ -239,3 +239,59 @@ SELECT
 FROM daily_reports
 GROUP BY DATE_FORMAT(report_date, '%Y-%m')
 ORDER BY month DESC;
+
+-- Insert users with generated emails and a standard initial password
+-- Note: Administrators should force users to change their password on first login
+
+-- Disable safe update mode temporarily
+SET SQL_SAFE_UPDATES = 0;
+
+-- Use a strong initial password (to be changed on first login)
+-- In a real-world scenario, use a proper password hashing mechanism
+INSERT INTO users (id, name, email, password, balance) VALUES
+(2320241, 'Zeyad Rabea Abd El-Hamid', '2320241@gmail.com', MD5('Welcome2024!'), 0.00),
+(2320603, 'Maryam Eid Abdelsalam', '2320603@gmail.com', MD5('Welcome2024!'), 0.00),
+(2320326, 'Abdulrahman Khamis Abdo', '2320326@gmail.com', MD5('Welcome2024!'), 0.00),
+(2320707, 'Hager Ragab El-Said Madian', '2320707@gmail.com', MD5('Welcome2024!'), 0.00),
+(2320630, 'Malk Saif Alden Attia', '2320630@gmail.com', MD5('Welcome2024!'), 0.00),
+(2320604, 'Mariam Mohamed Mubarak', '2320604@gmail.com', MD5('Welcome2024!'), 0.00),
+(2320269, 'Seif Eldeen Ehab Mohamed', '2320269@gmail.com', MD5('Welcome2024!'), 0.00),
+(2320605, 'Mariam Medhat Omar Gewely', '2320605@gmail.com', MD5('Welcome2024!'), 0.00),
+(2320712, 'Hager Taha Hassan Mohamed', '2320712@gmail.com', MD5('Welcome2024!'), 0.00),
+(2320677, 'Nada Mohammed Ragab', '2320677@gmail.com', MD5('Welcome2024!'), 0.00),
+(2320728, 'Wafaa Abdul Raouf Mohammed', '2320728@gmail.com', MD5('Welcome2024!'), 0.00),
+(2320091, 'Osama El-Sayed Ali', '2320091@gmail.com', MD5('Welcome2024!'), 0.00),
+(2320633, 'Manar Ashraf Mohamed', '2320633@gmail.com', MD5('Welcome2024!'), 0.00),
+(2320499, 'Mohammed Hamada Mohaseb', '2320499@gmail.com', MD5('Welcome2024!'), 0.00),
+(2020312, 'Abdulrahman Ahmed Attia', '2020312@gmail.com', MD5('Welcome2024!'), 0.00),
+(2320498, 'Mohamed Hossam Abdelfatah', '2320498@gmail.com', MD5('Welcome2024!'), 0.00),
+(2320523, 'Mohamed Abdelhamed El- Sayed', '2320523@gmail.com', MD5('Welcome2024!'), 0.00),
+(2320636, 'Manar Mahmoud El-Sayed', '2320636@gmail.com', MD5('Welcome2024!'), 0.00),
+(2320337, 'Abdelrahman Mohamed Said', '2320337@gmail.com', MD5('Welcome2024!'), 0.00),
+(2320721, 'Huda Hamdy Ibrahim', '2320721@gmail.com', MD5('Welcome2024!'), 0.00),
+(2320450, 'Karim Ahmed Mohamed', '2320450@gmail.com', MD5('Welcome2024!'), 0.00),
+(2320310, 'Abd El-Hamid Mohammed Abd El-Hamid', '2320310@gmail.com', MD5('Welcome2024!'), 0.00),
+(2320222, 'Rahma Saleh Ramadan', '2320222@gmail.com', MD5('Welcome2024!'), 0.00),
+(2320280, 'Shrouk Hesham Mohamed', '2320280@gmail.com', MD5('Welcome2024!'), 0.00),
+(2320598, 'Mariam Ibrahim Mohamed', '2320598@gmail.com', MD5('Welcome2024!'), 0.00),
+(2320220, 'Rahma El-Shahat Nour', '2320220@gmail.com', MD5('Welcome2024!'), 0.00),
+(2320155, 'Aya Mokhtar Eid', '2320155@gmail.com', MD5('Welcome2024!'), 0.00),
+(2320583, 'Mahmoud Arafa Abdel Halim', '2320583@gmail.com', MD5('Welcome2024!'), 0.00),
+(2320160, 'Basma Abd al Rasoul', '2320160@gmail.com', MD5('Welcome2024!'), 0.00),
+(2320338, 'Abdulrahman Muhammad Salim Khalil', '2320338@gmail.com', MD5('Welcome2024!'), 0.00),
+(2320334, 'Abdulrahman Awad Daif Allah Awad', '2320334@gmail.com', MD5('Welcome2024!'), 0.00),
+(2320344, 'Abdulrahman Muhammad Yusuf Abdul Mawjoud', '2320344@gmail.com', MD5('Welcome2024!'), 0.00),
+(2320296, 'Shahd Muhammad Rajab Turki', '2320296@gmail.com', MD5('Welcome2024!'), 0.00),
+(2320286, 'Shihab al-Din Muhammad Ahmad Hashim', '2320286@gmail.com', MD5('Welcome2024!'), 0.00),
+(2320210, 'Hanin Mohammed Murad Mohammed', '2320210@gmail.com', MD5('Welcome2024!'), 0.00);
+
+-- Re-enable safe update mode
+SET SQL_SAFE_UPDATES = 1;
+
+-- Optional: Create notifications for first-time login
+INSERT INTO notifications (user_id, message, type)
+SELECT id, 'Welcome! Please change your password upon first login.', 'info'
+FROM users;
+
+-- Helpful View/Verification Query
+SELECT id, name, email FROM users;
