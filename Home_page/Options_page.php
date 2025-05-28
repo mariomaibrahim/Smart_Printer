@@ -82,8 +82,8 @@ $isLoggedIn = isLoggedIn();
                     <i class="fas fa-sign-out-alt"></i> Log out
                 </a>
             <?php else: ?>
-                <a class="btn btn-login" href="../login_pages/login.php">
-                    <i class="fa-solid fa-print"></i> Sign in
+                <a class="btn btn-signup" href="../login_pages/login.php">
+                    <i class="fa-solid fa-user-plus"></i> Sign in
                 </a>
             <?php endif; ?>
         </div>
@@ -151,14 +151,6 @@ $isLoggedIn = isLoggedIn();
                         <label class="radio-button">
                             <input type="radio" name="pages" value="all" checked>
                             <span class="radio-label-text">All</span>
-                        </label>
-                        <label class="radio-button">
-                            <input type="radio" name="pages" value="odd">
-                            <span class="radio-label-text">Odd pages only</span>
-                        </label>
-                        <label class="radio-button">
-                            <input type="radio" name="pages" value="even">
-                            <span class="radio-label-text">Even pages only</span>
                         </label>
                         <label class="radio-button radio-button-input">
                             <input type="radio" name="pages" value="custom">

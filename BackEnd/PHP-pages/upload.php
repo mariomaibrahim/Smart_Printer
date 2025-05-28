@@ -20,6 +20,75 @@ if (!$user_id) {
     exit;
 }
 
+// دالة للتحقق من صحة نطاق الصفحات وحساب عدد الصفحات الفعلي
+function validateAndCountPageRange($pageOption, $pageRange, $totalPages) {
+    if ($pageOption === 'all') {
+        return ['valid' => true, 'count' => $totalPages, 'message' => ''];
+    }
+    
+    if ($pageOption === 'range') {
+        if (empty($pageRange)) {
+            return ['valid' => false, 'count' => 0, 'message' => 'يجب تحديد نطاق الصفحات'];
+        }
+        
+        // تنظيف النطاق من المسافات
+        $pageRange = str_replace(' ', '', $pageRange);
+        
+        // دعم الفواصل والشرطات
+        $ranges = explode(',', $pageRange);
+        $pageNumbers = [];
+        
+        foreach ($ranges as $range) {
+            if (strpos($range, '-') !== false) {
+                // نطاق من صفحة إلى أخرى (مثل 1-5)
+                $parts = explode('-', $range);
+                if (count($parts) !== 2) {
+                    return ['valid' => false, 'count' => 0, 'message' => 'نطاق الصفحات غير صحيح: ' . $range];
+                }
+                
+                $start = intval($parts[0]);
+                $end = intval($parts[1]);
+                
+                if ($start <= 0 || $end <= 0) {
+                    return ['valid' => false, 'count' => 0, 'message' => 'أرقام الصفحات يجب أن تكون أكبر من صفر'];
+                }
+                
+                if ($start > $totalPages || $end > $totalPages) {
+                    return ['valid' => false, 'count' => 0, 'message' => "رقم الصفحة يتجاوز عدد صفحات الملف ($totalPages)"];
+                }
+                
+                if ($start > $end) {
+                    return ['valid' => false, 'count' => 0, 'message' => 'رقم الصفحة الأولى يجب أن يكون أقل من أو يساوي رقم الصفحة الأخيرة'];
+                }
+                
+                for ($i = $start; $i <= $end; $i++) {
+                    $pageNumbers[] = $i;
+                }
+            } else {
+                // صفحة واحدة
+                $pageNum = intval($range);
+                if ($pageNum <= 0) {
+                    return ['valid' => false, 'count' => 0, 'message' => 'رقم الصفحة يجب أن يكون أكبر من صفر'];
+                }
+                
+                if ($pageNum > $totalPages) {
+                    return ['valid' => false, 'count' => 0, 'message' => "رقم الصفحة $pageNum يتجاوز عدد صفحات الملف ($totalPages)"];
+                }
+                
+                $pageNumbers[] = $pageNum;
+            }
+        }
+        
+        // إزالة التكرارات
+        $pageNumbers = array_unique($pageNumbers);
+        $actualPageCount = count($pageNumbers);
+        
+        return ['valid' => true, 'count' => $actualPageCount, 'message' => ''];
+    }
+    
+    return ['valid' => false, 'count' => 0, 'message' => 'خيار الصفحات غير صحيح'];
+}
+
 // دالة لحذف الملفات المكتملة - محسنة
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_completed_jobs') {
     header('Content-Type: application/json');
@@ -65,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         // إرسال إشعارات للمستخدمين
         foreach ($user_notifications as $user_id => $file_names) {
             $job_count = count($file_names);
-            $notification_stmt = $dbname->prepare("INSERT INTO notifications (user_id, message, type, created_at) VALUES (:user_id, :message, 'success', NOW())");
+            $notification_stmt = $dbname->prepare("INSERT INTO notifications (user_id, message, type, seen, created_at) VALUES (:user_id, :message, 'success', 0, NOW())");
             
             if ($job_count == 1) {
                 $message = "تم الانتهاء من طباعة الملف: " . $file_names[0] . " وتم حذفه من النظام.";
@@ -95,7 +164,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     exit;
 }
 
-// دالة لتحديث حالة المهمة - محسنة
+// دالة لتحديث حالة المهمة - محسنة مع إرسال الإشعارات
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_job_status') {
     header('Content-Type: application/json');
     try {
@@ -120,6 +189,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             exit;
         }
         
+        // التحقق من وجود تغيير في الحالة لتجنب الإشعارات المكررة
+        if ($job['status'] === $new_status) {
+            echo json_encode(['success' => true, 'message' => 'الحالة محدثة بالفعل']);
+            exit;
+        }
+        
         // بدء معاملة قاعدة البيانات
         $dbname->beginTransaction();
         
@@ -130,16 +205,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $update_stmt->bindParam(':job_id', $job_id);
             $update_stmt->execute();
             
-            // إذا كانت الحالة "done" - إرسال إشعار فقط (لا نحذف الملف هنا)
-            if ($new_status === 'done') {
-                // إرسال إشعار للمستخدم
-                $notification_stmt = $dbname->prepare("INSERT INTO notifications (user_id, message, type, created_at) VALUES (:user_id, :message, 'success', NOW())");
-                $message = "تم الانتهاء من طباعة ملف: " . $job['file_name'] . ". المهمة جاهزة للاستلام.";
+            // إرسال إشعار للمستخدم بناءً على الحالة الجديدة
+            $notification_message = '';
+            $notification_type = 'info';
+            
+            switch ($new_status) {
+                case 'in_progress':
+                    $notification_message = "🔄 بدأت طباعة ملف: " . $job['file_name'] . ". المهمة قيد التنفيذ الآن.";
+                    $notification_type = 'info';
+                    break;
+                case 'done':
+                    $notification_message = "✅ تم الانتهاء من طباعة ملف: " . $job['file_name'] . ". المهمة جاهزة للاستلام!";
+                    $notification_type = 'success';
+                    break;
+                case 'canceled':
+                    $notification_message = "❌ تم إلغاء طباعة ملف: " . $job['file_name'] . ".";
+                    $notification_type = 'error';
+                    break;
+                case 'pending':
+                    $notification_message = "⏳ تم إعادة تعيين المهمة: " . $job['file_name'] . " إلى قائمة الانتظار.";
+                    $notification_type = 'warning';
+                    break;
+            }
+            
+            // إدراج الإشعار في قاعدة البيانات مع تعيين seen = 0 بوضوح
+            if (!empty($notification_message)) {
+                $notification_stmt = $dbname->prepare("INSERT INTO notifications (user_id, message, type, seen, created_at) VALUES (:user_id, :message, :type, 0, NOW())");
                 $notification_stmt->bindParam(':user_id', $job['user_id']);
-                $notification_stmt->bindParam(':message', $message);
-                $notification_stmt->execute();
+                $notification_stmt->bindParam(':message', $notification_message);
+                $notification_stmt->bindParam(':type', $notification_type);
                 
-                error_log("تم إرسال إشعار اكتمال الطباعة للمستخدم: " . $job['user_id'] . " للملف: " . $job['file_name']);
+                if ($notification_stmt->execute()) {
+                    error_log("تم إرسال إشعار تحديث الحالة للمستخدم: " . $job['user_id'] . " للملف: " . $job['file_name'] . " بالحالة: " . $new_status);
+                } else {
+                    error_log("فشل في إرسال الإشعار");
+                }
             }
             
             // تأكيد المعاملة
@@ -147,8 +247,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             
             echo json_encode([
                 'success' => true, 
-                'message' => 'تم تحديث حالة المهمة بنجاح',
-                'notification_sent' => ($new_status === 'done')
+                'message' => 'تم تحديث حالة المهمة بنجاح وإرسال الإشعار',
+                'notification_sent' => !empty($notification_message),
+                'old_status' => $job['status'],
+                'new_status' => $new_status
             ]);
             
         } catch (Exception $e) {
@@ -219,14 +321,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['act
     exit;
 }
 
-// دالة للحصول على الإشعارات للمستخدم الحالي
+// دالة للحصول على الإشعارات للمستخدم الحالي - محسنة بشكل كامل
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['action'] === 'get_notifications') {
     header('Content-Type: application/json');
     try {
         $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 10;
         $offset = isset($_GET['offset']) ? intval($_GET['offset']) : 0;
+        $show_all = isset($_GET['show_all']) && $_GET['show_all'] === 'true';
         
-        $stmt = $dbname->prepare("SELECT * FROM notifications WHERE user_id = :user_id ORDER BY created_at DESC LIMIT :limit OFFSET :offset");
+        // إنشاء الاستعلام بناءً على طلب عرض جميع الإشعارات أو الغير مقروءة فقط
+        if ($show_all) {
+            $sql = "SELECT * FROM notifications WHERE user_id = :user_id ORDER BY created_at DESC LIMIT :limit OFFSET :offset";
+        } else {
+            $sql = "SELECT * FROM notifications WHERE user_id = :user_id AND (seen = 0 OR seen IS NULL) ORDER BY created_at DESC LIMIT :limit OFFSET :offset";
+        }
+        
+        $stmt = $dbname->prepare($sql);
         $stmt->bindParam(':user_id', $user_id);
         $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
         $stmt->bindParam(':offset', $offset, PDO::PARAM_INT);
@@ -234,15 +344,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['act
         $notifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         // عدد الإشعارات غير المقروءة
-        $unread_stmt = $dbname->prepare("SELECT COUNT(*) as count FROM notifications WHERE user_id = :user_id AND seen = 0");
+        $unread_stmt = $dbname->prepare("SELECT COUNT(*) as count FROM notifications WHERE user_id = :user_id AND (seen = 0 OR seen IS NULL)");
         $unread_stmt->bindParam(':user_id', $user_id);
         $unread_stmt->execute();
         $unread_count = $unread_stmt->fetch(PDO::FETCH_ASSOC)['count'];
         
+        // عدد جميع الإشعارات
+        $total_stmt = $dbname->prepare("SELECT COUNT(*) as count FROM notifications WHERE user_id = :user_id");
+        $total_stmt->bindParam(':user_id', $user_id);
+        $total_stmt->execute();
+        $total_count = $total_stmt->fetch(PDO::FETCH_ASSOC)['count'];
+        
         echo json_encode([
             'success' => true, 
             'notifications' => $notifications,
-            'unread_count' => $unread_count
+            'unread_count' => intval($unread_count),
+            'total_count' => intval($total_count)
+        ]);
+    } catch (Exception $e) {
+        error_log("خطأ في جلب الإشعارات: " . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    }
+    exit;
+}
+
+// دالة منفصلة للحصول على عدد الإشعارات غير المقروءة فقط
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['action'] === 'get_unread_notifications_count') {
+    header('Content-Type: application/json');
+    try {
+        $stmt = $dbname->prepare("SELECT COUNT(*) as count FROM notifications WHERE user_id = :user_id AND (seen = 0 OR seen IS NULL)");
+        $stmt->bindParam(':user_id', $user_id);
+        $stmt->execute();
+        $unread_count = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
+        
+        echo json_encode([
+            'success' => true, 
+            'unread_count' => intval($unread_count)
         ]);
     } catch (Exception $e) {
         echo json_encode(['success' => false, 'message' => $e->getMessage()]);
@@ -250,26 +387,97 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['action']) && $_GET['act
     exit;
 }
 
-// دالة لتحديد الإشعارات كمقروءة
+// دالة لتحديد الإشعارات كمقروءة - محسنة بشكل كامل
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'mark_notifications_read') {
     header('Content-Type: application/json');
     try {
-        $notification_ids = isset($_POST['notification_ids']) ? $_POST['notification_ids'] : [];
+        // استقبال بيانات JSON إذا كانت موجودة
+        $input = file_get_contents('php://input');
+        $json_data = json_decode($input, true);
         
-        if (empty($notification_ids)) {
-            // تحديد جميع الإشعارات كمقروءة
-            $stmt = $dbname->prepare("UPDATE notifications SET seen = 1 WHERE user_id = :user_id AND seen = 0");
-            $stmt->bindParam(':user_id', $user_id);
-            $stmt->execute();
-        } else {
-            // تحديد إشعارات محددة كمقروءة
-            $placeholders = str_repeat('?,', count($notification_ids) - 1) . '?';
-            $stmt = $dbname->prepare("UPDATE notifications SET seen = 1 WHERE user_id = ? AND id IN ($placeholders)");
-            $params = array_merge([$user_id], $notification_ids);
-            $stmt->execute($params);
+        $notification_ids = [];
+        
+        // التحقق من مصدر البيانات
+        if (isset($_POST['notification_ids'])) {
+            $notification_ids = is_string($_POST['notification_ids']) ? 
+                json_decode($_POST['notification_ids'], true) : 
+                $_POST['notification_ids'];
+        } elseif (isset($json_data['notification_ids'])) {
+            $notification_ids = $json_data['notification_ids'];
         }
         
-        echo json_encode(['success' => true, 'message' => 'تم تحديث الإشعارات']);
+        if (empty($notification_ids)) {
+            // تحديد جميع الإشعارات غير المقروءة كمقروءة للمستخدم الحالي
+            $stmt = $dbname->prepare("UPDATE notifications SET seen = 1 WHERE user_id = :user_id AND (seen = 0 OR seen IS NULL)");
+            $stmt->bindParam(':user_id', $user_id);
+            $stmt->execute();
+            $affected_rows = $stmt->rowCount();
+            
+            error_log("تم تحديد جميع الإشعارات كمقروءة للمستخدم: $user_id، عدد الإشعارات المحدثة: $affected_rows");
+        } else {
+            // تحديد إشعارات محددة كمقروءة للمستخدم الحالي فقط
+            $placeholders = str_repeat('?,', count($notification_ids) - 1) . '?';
+            $stmt = $dbname->prepare("UPDATE notifications SET seen = 1 WHERE user_id = ? AND id IN ($placeholders) AND (seen = 0 OR seen IS NULL)");
+            $params = array_merge([$user_id], $notification_ids);
+            $stmt->execute($params);
+            $affected_rows = $stmt->rowCount();
+            
+            error_log("تم تحديد إشعارات محددة كمقروءة للمستخدم: $user_id، معرفات الإشعارات: " . implode(',', $notification_ids) . "، عدد الإشعارات المحدثة: $affected_rows");
+        }
+        
+        echo json_encode([
+            'success' => true, 
+            'message' => 'تم تحديث الإشعارات بنجاح',
+            'affected_rows' => $affected_rows
+        ]);
+    } catch (Exception $e) {
+        error_log("خطأ في تحديث الإشعارات: " . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    }
+    exit;
+}
+
+// دالة لحذف الإشعارات المقروءة
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_read_notifications') {
+    header('Content-Type: application/json');
+    try {
+        $stmt = $dbname->prepare("DELETE FROM notifications WHERE user_id = :user_id AND seen = 1");
+        $stmt->bindParam(':user_id', $user_id);
+        $stmt->execute();
+        $deleted_count = $stmt->rowCount();
+        
+        echo json_encode([
+            'success' => true, 
+            'message' => "تم حذف {$deleted_count} إشعار مقروء",
+            'deleted_count' => $deleted_count
+        ]);
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    }
+    exit;
+}
+
+// دالة لحذف إشعار واحد محدد
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_notification') {
+    header('Content-Type: application/json');
+    try {
+        $notification_id = $_POST['notification_id'] ?? 0;
+        
+        if ($notification_id <= 0) {
+            echo json_encode(['success' => false, 'message' => 'معرف الإشعار غير صحيح']);
+            exit;
+        }
+        
+        $stmt = $dbname->prepare("DELETE FROM notifications WHERE id = :notification_id AND user_id = :user_id");
+        $stmt->bindParam(':notification_id', $notification_id);
+        $stmt->bindParam(':user_id', $user_id);
+        $stmt->execute();
+        
+        if ($stmt->rowCount() > 0) {
+            echo json_encode(['success' => true, 'message' => 'تم حذف الإشعار']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'الإشعار غير موجود أو لا يمكن حذفه']);
+        }
     } catch (Exception $e) {
         echo json_encode(['success' => false, 'message' => $e->getMessage()]);
     }
@@ -327,17 +535,53 @@ function sanitizeFileName($fileName) {
     return $sanitized;
 }
 
-// دالة لحساب تكلفة الطباعة
-function calculateCost($numPages, $numCopies, $colorMode, $printSides, $dbname, $user_id)
+// دالة لتوحيد قيم وضع اللون
+function normalizeColorMode($colorMode) {
+    // تحويل جميع القيم إلى نظام موحد
+    $colorMode = strtolower(trim($colorMode));
+    
+    switch ($colorMode) {
+        case 'bw':
+        case 'black_white':
+        case 'blackwhite':
+        case 'grayscale':
+            return 'black_white';
+        case 'color':
+        case 'colored':
+            return 'color';
+        default:
+            return 'black_white'; // القيمة الافتراضية
+    }
+}
+
+// دالة لحساب تكلفة الطباعة - محسنة
+function calculateCost($numPages, $numCopies, $colorMode, $printSides, $dbname, $user_id, $pageOption = 'all', $pageRange = '', $totalPages = null)
 {
     // الحصول على إعدادات الأسعار من قاعدة البيانات
     $settings = getPriceSettings($dbname);
     
+    // توحيد قيمة وضع اللون
+    $normalizedColorMode = normalizeColorMode($colorMode);
+    
     // تحويل قيم print_sides لتتناسب مع قاعدة البيانات
     $dbPrintSides = ($printSides === 'two-sided') ? 'double' : 'single';
     
+    // حساب عدد الصفحات الفعلي المراد طباعتها
+    $actualPageCount = $numPages;
+    
+    if ($pageOption === 'range' && !empty($pageRange) && $totalPages !== null) {
+        // التحقق من صحة النطاق وحساب عدد الصفحات الفعلي
+        $validation = validateAndCountPageRange($pageOption, $pageRange, $totalPages);
+        
+        if (!$validation['valid']) {
+            return ['success' => false, 'error' => $validation['message']];
+        }
+        
+        $actualPageCount = $validation['count'];
+    }
+    
     // تحديد سعر الصفحة بناءً على إعدادات اللون والطباعة
-    if ($colorMode == 'color') {
+    if ($normalizedColorMode == 'color') {
         if ($dbPrintSides == 'double') {
             $pagePrice = $settings['color_double'];
         } else {
@@ -350,22 +594,46 @@ function calculateCost($numPages, $numCopies, $colorMode, $printSides, $dbname, 
             $pagePrice = $settings['bw_single'];
         }
     }
-    // حساب التكلفة الإجمالية
-    $totalCost = $numPages * $numCopies * $pagePrice;
-    return $totalCost;
+    
+    // حساب التكلفة الإجمالية بناء على عدد الصفحات الفعلي
+    $totalCost = $actualPageCount * $numCopies * $pagePrice;
+    
+    return [
+        'success' => true, 
+        'cost' => $totalCost, 
+        'actual_page_count' => $actualPageCount,
+        'page_price' => $pagePrice
+    ];
 }
 
 // معالجة طلب حساب التكلفة
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'calculate_cost') {
-    $colorMode = $_POST['color'] ?? 'bw';
+    $colorMode = $_POST['color'] ?? 'black_white';
     $printSides = $_POST['sides'] ?? 'one-sided';
     $numPages = intval($_POST['page_count'] ?? 1);
     $numCopies = intval($_POST['copies'] ?? 1);
+    $pageOption = $_POST['pages'] ?? 'all';
+    $pageRange = $_POST['page_range'] ?? '';
+    $totalPages = isset($_POST['total_pages']) ? intval($_POST['total_pages']) : $numPages;
     
-    $cost = calculateCost($numPages, $numCopies, $colorMode, $printSides, $dbname, $user_id);
+    $result = calculateCost($numPages, $numCopies, $colorMode, $printSides, $dbname, $user_id, $pageOption, $pageRange, $totalPages);
     
     header('Content-Type: application/json');
-    echo json_encode(['success' => true, 'cost' => $cost]);
+    
+    if ($result['success']) {
+        echo json_encode([
+            'success' => true, 
+            'cost' => $result['cost'],
+            'actual_page_count' => $result['actual_page_count'],
+            'page_price' => $result['page_price'],
+            'message' => "سيتم طباعة {$result['actual_page_count']} صفحة"
+        ]);
+    } else {
+        echo json_encode([
+            'success' => false, 
+            'message' => $result['error']
+        ]);
+    }
     exit;
 }
 
@@ -375,11 +643,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $originalFileName = $_POST['original_file_name'] ?? '';
     $numPages = intval($_POST['page_count'] ?? 1);
     $numCopies = intval($_POST['copies'] ?? 1);
-    $colorMode = $_POST['color'] ?? 'bw';
+    $colorMode = $_POST['color'] ?? 'black_white';
     $printSides = $_POST['sides'] ?? 'one-sided';
     $orientation = $_POST['layout'] ?? 'portrait';
     $pageOption = $_POST['pages'] ?? 'all';
     $pageRange = $_POST['page_range'] ?? '';
+    $totalPages = isset($_POST['total_pages']) ? intval($_POST['total_pages']) : $numPages;
+    
+    // توحيد قيمة وضع اللون
+    $normalizedColorMode = normalizeColorMode($colorMode);
     
     // تحويل قيم print_sides لتتناسب مع قاعدة البيانات
     $dbPrintSides = ($printSides === 'two-sided') ? 'double' : 'single';
@@ -391,8 +663,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         exit;
     }
     
-    // حساب التكلفة
-    $cost = calculateCost($numPages, $numCopies, $colorMode, $printSides, $dbname, $user_id);
+    // حساب التكلفة مع التحقق من نطاق الصفحات
+    $costResult = calculateCost($numPages, $numCopies, $normalizedColorMode, $printSides, $dbname, $user_id, $pageOption, $pageRange, $totalPages);
+    
+    if (!$costResult['success']) {
+        header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'message' => $costResult['error']]);
+        exit;
+    }
+    
+    $cost = $costResult['cost'];
+    $actualPageCount = $costResult['actual_page_count'];
     
     // التحقق من رصيد المستخدم
     $stmt = $dbname->prepare("SELECT balance FROM users WHERE id = :user_id");
@@ -431,11 +712,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         exit;
     }
     
+    // تحديد نطاق الصفحات لحفظه في قاعدة البيانات
+    $finalPageRange = ($pageOption === 'all') ? 'all' : $pageRange;
+    
     try {
         // بدء معاملة قاعدة البيانات
         $dbname->beginTransaction();
         
-        // إنشاء مهمة طباعة بحالة pending
+        // إنشاء مهمة طباعة بحالة pending مع حفظ عدد الصفحات الفعلي
         $stmt = $dbname->prepare("INSERT INTO print_jobs (user_id, file_name, file_path, num_pages, num_copies, 
                                 color_mode, print_sides, orientation, page_range, cost, status, created_at) 
                                 VALUES (:user_id, :file_name, :file_path, :num_pages, :num_copies, 
@@ -444,12 +728,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $stmt->bindParam(':user_id', $user_id);
         $stmt->bindParam(':file_name', $originalFileName);
         $stmt->bindParam(':file_path', $target_path);
-        $stmt->bindParam(':num_pages', $numPages);
+        $stmt->bindParam(':num_pages', $actualPageCount); // حفظ عدد الصفحات الفعلي
         $stmt->bindParam(':num_copies', $numCopies);
-        $stmt->bindParam(':color_mode', $colorMode);
-        $stmt->bindParam(':print_sides', $dbPrintSides); // استخدام القيمة المحولة
+        $stmt->bindParam(':color_mode', $normalizedColorMode);
+        $stmt->bindParam(':print_sides', $dbPrintSides);
         $stmt->bindParam(':orientation', $orientation);
-        $stmt->bindParam(':page_range', $pageRange);
+        $stmt->bindParam(':page_range', $finalPageRange);
         $stmt->bindParam(':cost', $cost);
         $stmt->execute();
         
@@ -462,10 +746,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $stmt->bindParam(':user_id', $user_id);
         $stmt->execute();
         
-        // تسجيل المعاملة
+        // تسجيل المعاملة مع تفاصيل أكثر دقة
         $stmt = $dbname->prepare("INSERT INTO transactions (user_id, amount, type, description, created_at) 
                                 VALUES (:user_id, :amount, 'debit', :description, NOW())");
-        $description = "طباعة " . $numPages . " صفحة، " . $numCopies . " نسخة، " . ($colorMode == 'color' ? 'ملون' : 'أبيض وأسود');
+        
+        $pageDescription = ($pageOption === 'all') ? "جميع الصفحات ({$actualPageCount})" : "صفحات محددة ({$actualPageCount})";
+        $description = "طباعة {$pageDescription}، {$numCopies} نسخة، " . ($normalizedColorMode == 'color' ? 'ملون' : 'أبيض وأسود');
+        
         $stmt->bindParam(':user_id', $user_id);
         $stmt->bindParam(':amount', $cost);
         $stmt->bindParam(':description', $description);
@@ -480,9 +767,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         header('Content-Type: application/json');
         echo json_encode([
             'success' => true, 
-            'message' => 'تمت معالجة مهمة الطباعة بنجاح وهي في انتظار المعالجة',
+            'message' => "تمت معالجة مهمة الطباعة بنجاح. سيتم طباعة {$actualPageCount} صفحة",
             'job_id' => $job_id,
             'cost' => $cost,
+            'actual_page_count' => $actualPageCount,
             'remaining_balance' => $new_balance
         ]);
         exit;
@@ -496,7 +784,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         exit;
     }
 }
-
 // معالجة رفع الملف
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
     $file = $_FILES['file'];

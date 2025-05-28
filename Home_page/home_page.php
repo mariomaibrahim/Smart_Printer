@@ -83,8 +83,8 @@ $isLoggedIn = isLoggedIn();
                     <i class="fas fa-sign-out-alt"></i> Log out
                 </a>
             <?php else: ?>
-                <a class="btn btn-login" href="../login_pages/login.php">
-                    <i class="fa-solid fa-print"></i> Sign in
+                <a class="btn btn-signup" href="../login_pages/login.php">
+                    <i class="fa-solid fa-user-plus"></i> Sign in
                 </a>
             <?php endif; ?>
         </div>

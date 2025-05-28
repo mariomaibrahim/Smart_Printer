@@ -24,17 +24,14 @@ $notifications = [];
 $unread_count = 0;
 
 try {
-    // Get recent notifications (last 10)
-    $stmt = $dbname->prepare("SELECT * FROM notifications WHERE user_id = :user_id ORDER BY created_at DESC LIMIT 10");
+    // Get recent notifications (last 10) - only unread notifications
+    $stmt = $dbname->prepare("SELECT * FROM notifications WHERE user_id = :user_id AND seen = 0 ORDER BY created_at DESC LIMIT 10");
     $stmt->bindParam(':user_id', $user_id);
     $stmt->execute();
     $notifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Get unread count
-    $unread_stmt = $dbname->prepare("SELECT COUNT(*) as count FROM notifications WHERE user_id = :user_id AND seen = 0");
-    $unread_stmt->bindParam(':user_id', $user_id);
-    $unread_stmt->execute();
-    $unread_count = $unread_stmt->fetch(PDO::FETCH_ASSOC)['count'];
+    $unread_count = count($notifications);
 } catch (Exception $e) {
     error_log("Error fetching notifications: " . $e->getMessage());
 }
@@ -149,11 +146,11 @@ $isAdmin = isset($_SESSION['user_id']) && in_array($_SESSION['user_id'], $allowe
                         <div class="notification-list">
                             <?php if(empty($notifications)): ?>
                                 <div class="no-notifications">
-                                    No notifications yet
+                                    No new notifications
                                 </div>
                             <?php else: ?>
                                 <?php foreach($notifications as $notification): ?>
-                                    <div class="notification-item <?php echo $notification['seen'] ? '' : 'unread'; ?>" 
+                                    <div class="notification-item unread" 
                                          data-notification-id="<?php echo $notification['id']; ?>">
                                         <div style="display: flex; align-items: flex-start;">
                                             <div class="notification-icon <?php echo $notification['type'] == 'success' ? 'success' : 'info'; ?>">
@@ -258,8 +255,25 @@ $isAdmin = isset($_SESSION['user_id']) && in_array($_SESSION['user_id'], $allowe
                 const notificationId = this.getAttribute('data-notification-id');
                 if (this.classList.contains('unread')) {
                     markNotificationAsRead([notificationId]);
-                    this.classList.remove('unread');
-                    updateNotificationBadge();
+                    
+                    // Remove the notification from DOM with animation
+                    this.style.opacity = '0.5';
+                    this.style.transition = 'opacity 0.3s ease';
+                    
+                    setTimeout(() => {
+                        this.remove();
+                        updateNotificationBadge();
+                        
+                        // Check if no notifications left
+                        const remainingNotifications = document.querySelectorAll('.notification-item').length;
+                        if (remainingNotifications === 0) {
+                            document.querySelector('.notification-list').innerHTML = '<div class="no-notifications">No new notifications</div>';
+                            const actionsDiv = document.querySelector('.notification-actions');
+                            if (actionsDiv) {
+                                actionsDiv.remove();
+                            }
+                        }
+                    }, 300);
                 }
             });
         });
@@ -268,11 +282,26 @@ $isAdmin = isset($_SESSION['user_id']) && in_array($_SESSION['user_id'], $allowe
         if (markAllReadBtn) {
             markAllReadBtn.addEventListener('click', function() {
                 markNotificationAsRead([]);
-                document.querySelectorAll('.notification-item.unread').forEach(item => {
-                    item.classList.remove('unread');
+                
+                // Remove all notifications from DOM with animation
+                const allNotifications = document.querySelectorAll('.notification-item.unread');
+                allNotifications.forEach((item, index) => {
+                    setTimeout(() => {
+                        item.style.opacity = '0.5';
+                        item.style.transition = 'opacity 0.3s ease';
+                        
+                        setTimeout(() => {
+                            item.remove();
+                        }, 300);
+                    }, index * 100);
                 });
-                this.parentElement.style.display = 'none';
-                updateNotificationBadge();
+                
+                // Update UI after all animations
+                setTimeout(() => {
+                    document.querySelector('.notification-list').innerHTML = '<div class="no-notifications">No new notifications</div>';
+                    this.parentElement.remove();
+                    updateNotificationBadge();
+                }, (allNotifications.length * 100) + 400);
             });
         }
 
@@ -318,18 +347,70 @@ $isAdmin = isset($_SESSION['user_id']) && in_array($_SESSION['user_id'], $allowe
 
         // Auto-refresh notifications every 30 seconds
         setInterval(function() {
-            fetch('../BackEnd/PHP-pages/upload.php?action=get_notifications&limit=10')
+            fetch('../BackEnd/PHP-pages/upload.php?action=get_unread_notifications_count')
                 .then(response => response.json())
                 .then(data => {
                     if (data.success && data.unread_count > <?php echo $unread_count; ?>) {
-                        // Reload page if there are new notifications
-                        location.reload();
+                        // Show notification alert for new notifications
+                        showNewNotificationAlert(data.unread_count - <?php echo $unread_count; ?>);
+                        
+                        // Reload notifications
+                        setTimeout(() => {
+                            location.reload();
+                        }, 2000);
                     }
                 })
                 .catch(error => {
                     console.error('Error checking for new notifications:', error);
                 });
         }, 30000);
+
+        // Function to show new notification alert
+        function showNewNotificationAlert(newCount) {
+            // Create alert element
+            const alert = document.createElement('div');
+            alert.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #4CAF50;
+                color: white;
+                padding: 15px 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 10000;
+                font-family: Arial, sans-serif;
+                animation: slideIn 0.3s ease;
+            `;
+            
+            alert.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class="fa fa-bell" style="font-size: 18px;"></i>
+                    <span>You have ${newCount} new notification${newCount > 1 ? 's' : ''}!</span>
+                </div>
+            `;
+            
+            // Add CSS animation
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes slideIn {
+                    from { transform: translateX(100%); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+            `;
+            document.head.appendChild(style);
+            
+            document.body.appendChild(alert);
+            
+            // Remove alert after 3 seconds
+            setTimeout(() => {
+                alert.style.animation = 'slideIn 0.3s ease reverse';
+                setTimeout(() => {
+                    alert.remove();
+                    style.remove();
+                }, 300);
+            }, 3000);
+        }
 
         // Payment popup functionality (if exists)
         const shippingBtn = document.getElementById('shippingBtn');
