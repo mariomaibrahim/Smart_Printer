@@ -23,42 +23,50 @@ if (!$user_id) {
 // دالة للتحقق من صحة نطاق الصفحات وحساب عدد الصفحات الفعلي
 function validateAndCountPageRange($pageOption, $pageRange, $totalPages) {
     if ($pageOption === 'all') {
-        return ['valid' => true, 'count' => $totalPages, 'message' => ''];
+        return ['valid' => true, 'count' => $totalPages, 'message' => '', 'pages' => range(1, $totalPages)];
     }
     
-    if ($pageOption === 'range') {
+    if ($pageOption === 'custom' || $pageOption === 'range') {
         if (empty($pageRange)) {
-            return ['valid' => false, 'count' => 0, 'message' => 'يجب تحديد نطاق الصفحات'];
+            return ['valid' => false, 'count' => 0, 'message' => 'يجب تحديد نطاق الصفحات', 'pages' => []];
         }
         
-        // تنظيف النطاق من المسافات
-        $pageRange = str_replace(' ', '', $pageRange);
+        // تنظيف النطاق من المسافات والرموز غير المرغوب فيها
+        $pageRange = preg_replace('/\s+/', '', $pageRange);
+        $pageRange = trim($pageRange, ',');
+        
+        if (empty($pageRange)) {
+            return ['valid' => false, 'count' => 0, 'message' => 'نطاق الصفحات فارغ', 'pages' => []];
+        }
         
         // دعم الفواصل والشرطات
         $ranges = explode(',', $pageRange);
         $pageNumbers = [];
         
         foreach ($ranges as $range) {
+            $range = trim($range);
+            if (empty($range)) continue;
+            
             if (strpos($range, '-') !== false) {
                 // نطاق من صفحة إلى أخرى (مثل 1-5)
                 $parts = explode('-', $range);
                 if (count($parts) !== 2) {
-                    return ['valid' => false, 'count' => 0, 'message' => 'نطاق الصفحات غير صحيح: ' . $range];
+                    return ['valid' => false, 'count' => 0, 'message' => 'نطاق الصفحات غير صحيح: ' . $range, 'pages' => []];
                 }
                 
-                $start = intval($parts[0]);
-                $end = intval($parts[1]);
+                $start = intval(trim($parts[0]));
+                $end = intval(trim($parts[1]));
                 
                 if ($start <= 0 || $end <= 0) {
-                    return ['valid' => false, 'count' => 0, 'message' => 'أرقام الصفحات يجب أن تكون أكبر من صفر'];
+                    return ['valid' => false, 'count' => 0, 'message' => 'أرقام الصفحات يجب أن تكون أكبر من صفر', 'pages' => []];
                 }
                 
                 if ($start > $totalPages || $end > $totalPages) {
-                    return ['valid' => false, 'count' => 0, 'message' => "رقم الصفحة يتجاوز عدد صفحات الملف ($totalPages)"];
+                    return ['valid' => false, 'count' => 0, 'message' => "رقم الصفحة يتجاوز عدد صفحات الملف ($totalPages)", 'pages' => []];
                 }
                 
                 if ($start > $end) {
-                    return ['valid' => false, 'count' => 0, 'message' => 'رقم الصفحة الأولى يجب أن يكون أقل من أو يساوي رقم الصفحة الأخيرة'];
+                    return ['valid' => false, 'count' => 0, 'message' => 'رقم الصفحة الأولى يجب أن يكون أقل من أو يساوي رقم الصفحة الأخيرة', 'pages' => []];
                 }
                 
                 for ($i = $start; $i <= $end; $i++) {
@@ -68,25 +76,30 @@ function validateAndCountPageRange($pageOption, $pageRange, $totalPages) {
                 // صفحة واحدة
                 $pageNum = intval($range);
                 if ($pageNum <= 0) {
-                    return ['valid' => false, 'count' => 0, 'message' => 'رقم الصفحة يجب أن يكون أكبر من صفر'];
+                    return ['valid' => false, 'count' => 0, 'message' => 'رقم الصفحة يجب أن يكون أكبر من صفر', 'pages' => []];
                 }
                 
                 if ($pageNum > $totalPages) {
-                    return ['valid' => false, 'count' => 0, 'message' => "رقم الصفحة $pageNum يتجاوز عدد صفحات الملف ($totalPages)"];
+                    return ['valid' => false, 'count' => 0, 'message' => "رقم الصفحة $pageNum يتجاوز عدد صفحات الملف ($totalPages)", 'pages' => []];
                 }
                 
                 $pageNumbers[] = $pageNum;
             }
         }
         
-        // إزالة التكرارات
+        if (empty($pageNumbers)) {
+            return ['valid' => false, 'count' => 0, 'message' => 'لم يتم تحديد صفحات صالحة', 'pages' => []];
+        }
+        
+        // إزالة التكرارات وترتيب الصفحات
         $pageNumbers = array_unique($pageNumbers);
+        sort($pageNumbers);
         $actualPageCount = count($pageNumbers);
         
-        return ['valid' => true, 'count' => $actualPageCount, 'message' => ''];
+        return ['valid' => true, 'count' => $actualPageCount, 'message' => '', 'pages' => $pageNumbers];
     }
     
-    return ['valid' => false, 'count' => 0, 'message' => 'خيار الصفحات غير صحيح'];
+    return ['valid' => false, 'count' => 0, 'message' => 'خيار الصفحات غير صحيح', 'pages' => []];
 }
 
 // دالة لحذف الملفات المكتملة - محسنة
@@ -484,8 +497,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     exit;
 }
 
-// باقي الكود يبقى كما هو...
-// دالة للحصول على إعدادات الأسعار
 function getPriceSettings($dbname) {
     try {
         $stmt = $dbname->query("SELECT * FROM price_settings ORDER BY id DESC LIMIT 1");

@@ -99,7 +99,6 @@ $isAdmin = isset($_SESSION['user_id']) && in_array($_SESSION['user_id'], $allowe
             <a href="../Home_page/home_page.php">Home</a>
             <a href="../Home_page/home_page.php#features">Features</a>
             <a href="../Home_page/home_page.php#how-it-works">How It Works</a>
-            <a href="../Home_page/Options_page.php">Print Now</a>
             <a href="../Home_page/home_page.php#contact_us">Contact Us</a>
         </div>
 
