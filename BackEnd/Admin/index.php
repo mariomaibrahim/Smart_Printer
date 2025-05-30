@@ -1,364 +1,6 @@
 <?php
-require_once '../PHP-pages/session_auth.php';
-
-// التحقق من تسجيل الدخول
-if (!isset($_SESSION['authenticated']) || $_SESSION['authenticated'] !== true) {
-  // إذا لم يكن المستخدم مسجل الدخول، قم بتوجيهه إلى صفحة تسجيل الدخول
-  header("Location: login.php");
-  exit();
-}
-
-// قائمة المستخدمين المسموح لهم بالوصول إلى لوحة التحكم
-$allowedAdminUsers = [2320603, 2320598, 2320241];
-
-// التحقق مما إذا كان المستخدم الحالي لديه صلاحيات الإدارة
-if (!in_array($_SESSION['user_id'], $allowedAdminUsers)) {
-  // إذا لم يكن المستخدم مسموحًا له، قم بتوجيهه إلى صفحة المستخدم العادي
-  header("Location: ../User_page/user.php");
-  exit();
-}
-// Database connection
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "aitp";
-
-// Create connection
-$conn = new mysqli($servername, $username, $password, $dbname);
-
-// Check connection
-if ($conn->connect_error) {
-  die("Connection failed: " . $conn->connect_error);
-}
-
-// Get statistics from database
-function getStatistics($conn)
-{
-  $stats = array();
-
-  // Get total users
-  $sql = "SELECT COUNT(*) as total_users FROM users";
-  $result = $conn->query($sql);
-  if ($result->num_rows > 0) {
-    $row = $result->fetch_assoc();
-    $stats['total_users'] = $row['total_users'];
-  } else {
-    $stats['total_users'] = 0;
-  }
-
-  // Get total print requests - changed table name from print_orders to print_jobs
-  $sql = "SELECT COUNT(*) as total_print_requests FROM print_jobs";
-  $result = $conn->query($sql);
-  if ($result->num_rows > 0) {
-    $row = $result->fetch_assoc();
-    $stats['total_print_requests'] = $row['total_print_requests'];
-  } else {
-    $stats['total_print_requests'] = 0;
-  }
-
-  // Get total revenue - changed table name from print_orders to print_jobs
-  $sql = "SELECT SUM(cost) as total_revenue FROM print_jobs";
-  $result = $conn->query($sql);
-  if ($result->num_rows > 0) {
-    $row = $result->fetch_assoc();
-    $stats['total_revenue'] = $row['total_revenue'] ? $row['total_revenue'] : 0;
-  } else {
-    $stats['total_revenue'] = 0;
-  }
-
-  // Get completed orders - changed table name and status value based on print_jobs schema
-  $sql = "SELECT COUNT(*) as completed_orders FROM print_jobs WHERE status = 'done'";
-  $result = $conn->query($sql);
-  if ($result->num_rows > 0) {
-    $row = $result->fetch_assoc();
-    $stats['completed_orders'] = $row['completed_orders'];
-  } else {
-    $stats['completed_orders'] = 0;
-  }
-
-  return $stats;
-}
-
-// Create price settings table if it doesn't exist
-function createPriceSettingsTable($conn)
-{
-  $sql = "CREATE TABLE IF NOT EXISTS price_settings (
-      id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-      bw_single DECIMAL(10, 2) NOT NULL DEFAULT 0.50,
-      color_single DECIMAL(10, 2) NOT NULL DEFAULT 1.50,
-      bw_double DECIMAL(10, 2) NOT NULL DEFAULT 0.80,
-      color_double DECIMAL(10, 2) NOT NULL DEFAULT 2.50,
-      student_discount INT NOT NULL DEFAULT 10,
-      professor_discount INT NOT NULL DEFAULT 15,
-      staff_discount INT NOT NULL DEFAULT 5,
-      bulk_discount INT NOT NULL DEFAULT 20,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-  )";
-
-  if ($conn->query($sql) === TRUE) {
-    // Insert default record if it doesn't exist
-    $checkSql = "SELECT COUNT(*) as count FROM price_settings";
-    $result = $conn->query($checkSql);
-    $row = $result->fetch_assoc();
-
-    if ($row['count'] == 0) {
-      $insertSql = "INSERT INTO price_settings (id, bw_single, color_single, bw_double, color_double) 
-                    VALUES (1, 0.50, 1.50, 0.80, 2.50)";
-      $conn->query($insertSql);
-    }
-  }
-}
-
-// Create printer status table if it doesn't exist
-function createPrinterStatusTable($conn)
-{
-  $sql = "CREATE TABLE IF NOT EXISTS printer_status (
-      id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-      name VARCHAR(100) NOT NULL DEFAULT 'HP LaserJet Pro M404dn',
-      status VARCHAR(50) NOT NULL DEFAULT 'Connected',
-      black_ink INT NOT NULL DEFAULT 35,
-      cyan_ink INT NOT NULL DEFAULT 65,
-      magenta_ink INT NOT NULL DEFAULT 15,
-      yellow_ink INT NOT NULL DEFAULT 80,
-      remaining_paper INT NOT NULL DEFAULT 250,
-      pending_jobs INT NOT NULL DEFAULT 0,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-  )";
-
-  if ($conn->query($sql) === TRUE) {
-    // Insert default record if it doesn't exist
-    $checkSql = "SELECT COUNT(*) as count FROM printer_status";
-    $result = $conn->query($checkSql);
-    $row = $result->fetch_assoc();
-
-    if ($row['count'] == 0) {
-      $insertSql = "INSERT INTO printer_status (id) VALUES (1)";
-      $conn->query($insertSql);
-    }
-  }
-}
-
-// Create printer notifications table if it doesn't exist
-function createPrinterNotificationsTable($conn)
-{
-  $sql = "CREATE TABLE IF NOT EXISTS printer_notifications (
-      id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-      date_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      message TEXT NOT NULL,
-      level ENUM('info', 'warning', 'error') NOT NULL DEFAULT 'info'
-  )";
-
-  $conn->query($sql);
-}
-
-// Ensure necessary tables exist
-createPriceSettingsTable($conn);
-createPrinterStatusTable($conn);
-createPrinterNotificationsTable($conn);
-
-// Get price settings from database
-function getPriceSettings($conn)
-{
-  $prices = array();
-
-  $sql = "SELECT * FROM price_settings WHERE id = 1";
-  $result = $conn->query($sql);
-
-  if ($result && $result->num_rows > 0) {
-    $prices = $result->fetch_assoc();
-  } else {
-    // Default values if no record exists
-    $prices = array(
-      'bw_single' => 0.50,
-      'color_single' => 1.50,
-      'bw_double' => 0.80,
-      'color_double' => 2.50,
-      'student_discount' => 10,
-      'professor_discount' => 15,
-      'staff_discount' => 5,
-      'bulk_discount' => 20
-    );
-  }
-
-  return $prices;
-}
-
-// Get recent print orders - adjusted for print_jobs schema
-function getRecentPrintOrders($conn, $limit = 10)
-{
-  $orders = array();
-
-  $sql = "SELECT pj.id, u.name as user_name, pj.file_name as document_type, 
-            pj.num_pages as pages, pj.cost, pj.created_at as order_date, pj.status 
-            FROM print_jobs pj 
-            JOIN users u ON pj.user_id = u.id 
-            ORDER BY pj.created_at DESC 
-            LIMIT $limit";
-
-  $result = $conn->query($sql);
-
-  if ($result && $result->num_rows > 0) {
-    while ($row = $result->fetch_assoc()) {
-      $orders[] = $row;
-    }
-  }
-
-  return $orders;
-}
-
-// Get printer notifications
-function getPrinterNotifications($conn, $limit = 5)
-{
-  $notifications = array();
-
-  $sql = "SELECT date_time, message, level FROM printer_notifications ORDER BY date_time DESC LIMIT $limit";
-  $result = $conn->query($sql);
-
-  if ($result && $result->num_rows > 0) {
-    while ($row = $result->fetch_assoc()) {
-      $notifications[] = $row;
-    }
-  }
-
-  return $notifications;
-}
-
-// Get printer status
-function getPrinterStatus($conn)
-{
-  $status = array();
-
-  $sql = "SELECT * FROM printer_status WHERE id = 1";
-  $result = $conn->query($sql);
-
-  if ($result && $result->num_rows > 0) {
-    $status = $result->fetch_assoc();
-  } else {
-    // Default values if no record exists
-    $status = array(
-      'name' => 'HP LaserJet Pro M404dn',
-      'status' => 'Connected',
-      'black_ink' => 35,
-      'cyan_ink' => 65,
-      'magenta_ink' => 15,
-      'yellow_ink' => 80,
-      'remaining_paper' => 250,
-      'pending_jobs' => 5
-    );
-  }
-
-  return $status;
-}
-
-// Update printer status with count of pending jobs
-function updatePrinterStatus($conn)
-{
-  $sql = "SELECT COUNT(*) as pending_count FROM print_jobs WHERE status = 'pending'";
-  $result = $conn->query($sql);
-  $row = $result->fetch_assoc();
-  $pending_count = $row['pending_count'];
-
-  $update_sql = "UPDATE printer_status SET pending_jobs = ? WHERE id = 1";
-  $stmt = $conn->prepare($update_sql);
-  $stmt->bind_param("i", $pending_count);
-  $stmt->execute();
-  $stmt->close();
-}
-
-// Update printer status
-updatePrinterStatus($conn);
-
-// Save price settings
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['save_prices'])) {
-  $bw_single = $_POST['bw_single'];
-  $color_single = $_POST['color_single'];
-  $bw_double = $_POST['bw_double'];
-  $color_double = $_POST['color_double'];
-
-  $sql = "UPDATE price_settings SET 
-            bw_single = ?, 
-            color_single = ?, 
-            bw_double = ?, 
-            color_double = ?, 
-            student_discount = ?, 
-            professor_discount = ?, 
-            staff_discount = ?, 
-            bulk_discount = ? 
-            WHERE id = 1";
-
-  $stmt = $conn->prepare($sql);
-  $stmt->bind_param("dddddddd", $bw_single, $color_single, $bw_double, $color_double, $student_discount, $professor_discount, $staff_discount, $bulk_discount);
-
-  if ($stmt->execute()) {
-    $priceUpdateMessage = "Price settings updated successfully!";
-  } else {
-    $priceUpdateMessage = "Error updating price settings: " . $conn->error;
-  }
-
-  $stmt->close();
-}
-
-// Add coins to user
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['add_coin'])) {
-  $email = $_POST['email'];
-  $amount = $_POST['amount'];
-
-  // Find user by email
-  $sql = "SELECT id, balance FROM users WHERE email = ?";
-  $stmt = $conn->prepare($sql);
-  $stmt->bind_param("s", $email);
-  $stmt->execute();
-  $result = $stmt->get_result();
-
-  if ($result->num_rows > 0) {
-    $user = $result->fetch_assoc();
-    $new_balance = $user['balance'] + $amount;
-
-    // Update user balance using stored procedure instead of direct update
-    $admin_name = "Admin"; // Assuming admin name
-    $reason = "Manual balance addition"; // Reason for addition
-
-    $sp_sql = "CALL add_funds_to_user(?, ?, ?, ?)";
-    $sp_stmt = $conn->prepare($sp_sql);
-    $sp_stmt->bind_param("sids", $admin_name, $user['id'], $amount, $reason);
-
-    if ($sp_stmt->execute()) {
-      $coinUpdateMessage = "Successfully added " . $amount . " AITP to user account!";
-    } else {
-      $coinUpdateMessage = "Error adding coins: " . $conn->error;
-    }
-
-    $sp_stmt->close();
-  } else {
-    $coinUpdateMessage = "User with this email not found!";
-  }
-
-  $stmt->close();
-}
-
-// Get all data for the dashboard
-$statistics = getStatistics($conn);
-$prices = getPriceSettings($conn);
-$recentOrders = getRecentPrintOrders($conn);
-$printerStatus = getPrinterStatus($conn);
-$printerNotifications = getPrinterNotifications($conn);
-
-// Add test notification for testing
-if (!empty($_GET['test_notification'])) {
-  $message = "This is a test printer notification.";
-  $level = "info";
-  $sql = "INSERT INTO printer_notifications (message, level) VALUES (?, ?)";
-  $stmt = $conn->prepare($sql);
-  $stmt->bind_param("ss", $message, $level);
-  $stmt->execute();
-  header("Location: " . $_SERVER['PHP_SELF']);
-  exit;
-}
-
+require_once 'notfi.php';
 ?>
-
 <!DOCTYPE html>
 <html lang="en" dir="ltr">
 
@@ -396,7 +38,6 @@ if (!empty($_GET['test_notification'])) {
 
   <!-- CSS Just for demo purpose, don't include it in your project -->
   <link rel="stylesheet" href="assets/css/demo.css" />
-
   <style>
     .ink-level {
       background-color: #f1f1f1;
@@ -592,58 +233,55 @@ if (!empty($_GET['test_notification'])) {
                 <a class="nav-link dropdown-toggle" href="#" id="notifDropdown" role="button" data-bs-toggle="dropdown"
                   aria-haspopup="true" aria-expanded="false">
                   <i class="fa fa-bell"></i>
-                  <span class="notification">4</span>
+                  <?php if ($unreadNotificationsCount > 0): ?>
+                    <span class="notification" id="notifications-counter"><?php echo $unreadNotificationsCount; ?></span>
+                  <?php endif; ?>
                 </a>
                 <ul class="dropdown-menu notif-box animated fadeIn" aria-labelledby="notifDropdown">
                   <li>
                     <div class="dropdown-title">
-                      You have 4 new notifications
+                      You have <?php echo $unreadNotificationsCount; ?> new notifications
                     </div>
                   </li>
                   <li>
                     <div class="notif-scroll scrollbar-outer">
                       <div class="notif-center">
-                        <a href="#">
-                          <div class="notif-icon notif-warning">
-                            <i class="fas fa-exclamation-triangle"></i>
+                        <?php if (!empty($printerNotifications)): ?>
+                          <?php foreach ($printerNotifications as $notif): ?>
+                            <a href="#" class="notification-item" id="notification_<?php echo $notif['id']; ?>"
+                              data-notification-id="<?php echo $notif['id']; ?>">
+                              <div class="notif-icon <?php
+                              echo ($notif['level'] == 'error') ? 'notif-danger' :
+                                (($notif['level'] == 'warning') ? 'notif-warning' :
+                                  (($notif['level'] == 'info') ? 'notif-primary' : 'notif-success'));
+                              ?>">
+                                <i class="<?php
+                                echo ($notif['level'] == 'error') ? 'fa fa-exclamation-circle' :
+                                  (($notif['level'] == 'warning') ? 'fas fa-exclamation-triangle' :
+                                    (($notif['level'] == 'info') ? 'fa fa-info-circle' : 'fa fa-check-circle'));
+                                ?>"></i>
+                              </div>
+                              <div class="notif-content">
+                                <span class="block"><?php echo htmlspecialchars($notif['message']); ?></span>
+                                <span class="time">
+                                  <?php echo date('Y-m-d H:i:s', strtotime($notif['date_time'])); ?>
+                                </span>
+                              </div>
+                            </a>
+                          <?php endforeach; ?>
+                        <?php else: ?>
+                          <div class="text-center p-3">
+                            <i class="fa fa-bell-slash fa-2x text-muted mb-2"></i>
+                            <p class="text-muted mb-0">No notifications available</p>
                           </div>
-                          <div class="notif-content">
-                            <span class="block">Low ink level</span>
-                            <span class="time">5 minutes ago</span>
-                          </div>
-                        </a>
-                        <a href="#">
-                          <div class="notif-icon notif-primary">
-                            <i class="fa fa-user-plus"></i>
-                          </div>
-                          <div class="notif-content">
-                            <span class="block">New user registered</span>
-                            <span class="time">12 minutes ago</span>
-                          </div>
-                        </a>
-                        <a href="#">
-                          <div class="notif-icon notif-success">
-                            <i class="fa fa-print"></i>
-                          </div>
-                          <div class="notif-content">
-                            <span class="block">Print job #4321 completed</span>
-                            <span class="time">15 minutes ago</span>
-                          </div>
-                        </a>
-                        <a href="#">
-                          <div class="notif-icon notif-danger">
-                            <i class="fa fa-exclamation-circle"></i>
-                          </div>
-                          <div class="notif-content">
-                            <span class="block">Printer disconnected</span>
-                            <span class="time">30 minutes ago</span>
-                          </div>
-                        </a>
+                        <?php endif; ?>
                       </div>
                     </div>
                   </li>
                   <li>
-                    <a class="see-all" href="javascript:void(0);">See all notifications<i class="fa fa-angle-right"></i>
+                    <a id="mark-all-read-btn" class="btn btn-label-info see-all">
+                      Mark all as read
+                      <i class="fa fa-check ml-1"></i>
                     </a>
                   </li>
                 </ul>
@@ -652,11 +290,13 @@ if (!empty($_GET['test_notification'])) {
               <li class="nav-item topbar-user dropdown hidden-caret">
                 <a class="dropdown-toggle profile-pic" data-bs-toggle="dropdown" href="#" aria-expanded="false">
                   <div class="avatar-sm">
-                    <img src="assets/img/profile.jpg" alt="..." class="avatar-img rounded-circle" />
+                    <div href="../../User_page/user.php" class="avatar-initials <?php echo $avatarColor; ?>">
+                      <?php echo $userInitials; ?>
+                    </div>
                   </div>
                   <span class="profile-username">
                     <span class="op-7">Hello,</span>
-                    <span class="fw-bold"><?php echo $users['name'] ?? $_SESSION['user_name']; ?></span>
+                    <span class="fw-bold"><?php echo htmlspecialchars($userName); ?></span>
                   </span>
                 </a>
                 <ul class="dropdown-menu dropdown-user animated fadeIn">
@@ -664,11 +304,13 @@ if (!empty($_GET['test_notification'])) {
                     <li>
                       <div class="user-box">
                         <div class="avatar-lg">
-                          <img src="assets/img/profile.jpg" alt="image profile" class="avatar-img rounded" />
+                          <div class="avatar-initials avatar-initials-lg <?php echo $avatarColor; ?>">
+                            <?php echo $userInitials; ?>
+                          </div>
                         </div>
                         <div class="u-text">
-                          <h4><?php echo $users['name'] ?? $_SESSION['user_name']; ?></h4>
-                          <p class="text-muted"><?php echo $users['email'] ?? $_SESSION['user_email']; ?></p>
+                          <h4><?php echo htmlspecialchars($userName); ?></h4>
+                          <p class="text-muted"><?php echo htmlspecialchars($userEmail); ?></p>
                           <a href="../../User_page/user.php" class="btn btn-xs btn-secondary btn-sm">View Profile</a>
                         </div>
                       </div>
@@ -676,7 +318,7 @@ if (!empty($_GET['test_notification'])) {
                     <li>
                       <div class="dropdown-divider"></div>
                       <a class="btn btn-logout" href="../PHP-pages/logout.php">
-                        <i class="fas fa-sign-out-alt"></i> Log out
+                        <i class="fas fa-sign-out-alt"></i>  Log out
                       </a>
                     </li>
                   </div>
@@ -685,6 +327,8 @@ if (!empty($_GET['test_notification'])) {
             </ul>
           </div>
         </nav>
+
+
         <!-- End Navbar -->
       </div>
 
@@ -945,11 +589,6 @@ if (!empty($_GET['test_notification'])) {
                 <div class="card-header">
                   <div class="card-head-row">
                     <div class="card-title">Recent Print Orders</div>
-                    <div class="card-tools">
-                      <a href="#" class="btn btn-sm btn-label-primary">
-                        View All
-                      </a>
-                    </div>
                   </div>
                 </div>
                 <div class="card-body">
@@ -964,7 +603,6 @@ if (!empty($_GET['test_notification'])) {
                           <th>Cost</th>
                           <th>Order Date</th>
                           <th>Status</th>
-                          <th>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -985,16 +623,6 @@ if (!empty($_GET['test_notification'])) {
                                 <?php echo ucfirst($order['status']); ?>
                               </span>
                             </td>
-                            <td>
-                              <div class="btn-group">
-                                <button type="button" class="btn btn-sm btn-link">
-                                  <i class="fas fa-eye"></i>
-                                </button>
-                                <button type="button" class="btn btn-sm btn-link">
-                                  <i class="fas fa-print"></i>
-                                </button>
-                              </div>
-                            </td>
                           </tr>
                         <?php endforeach; ?>
                       </tbody>
@@ -1012,56 +640,108 @@ if (!empty($_GET['test_notification'])) {
                 <div class="card-header">
                   <div class="card-head-row">
                     <div class="card-title">Price Settings</div>
-                    <div class="card-tools">
-                      <button type="submit" form="priceSettingsForm" class="btn btn-sm btn-label-success">
-                        <i class="fas fa-save me-2"></i>
-                        Save Changes
-                      </button>
-                    </div>
                   </div>
                 </div>
                 <div class="card-body">
                   <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-md-8">
                       <div class="card card-round">
                         <div class="card-header">
                           <h4 class="card-title">Standard Printing Prices</h4>
                         </div>
                         <div class="card-body">
-                          <form id="priceSettingsForm" method="post" action="">
+                          <form method="post" action="">
                             <input type="hidden" name="save_prices" value="1">
-                            <div class="mb-3">
-                              <label class="form-label">Price per page (Black and White)</label>
-                              <div class="input-group">
-                                <span class="input-group-text">AITP</span>
-                                <input type="number" name="bw_single" class="form-control"
-                                  value="<?php echo $prices['bw_single']; ?>" step="0.10">
+
+                            <div class="row">
+                              <div class="col-md-6">
+                                <div class="mb-3">
+                                  <label class="form-label">Price per page (Black and White)</label>
+                                  <div class="input-group">
+                                    <span class="input-group-text">AITP</span>
+                                    <input type="number" name="bw_single" class="form-control"
+                                      value="<?php echo number_format($prices['bw_single'], 2); ?>" step="0.01" min="0"
+                                      required>
+                                  </div>
+                                </div>
+
+                                <div class="mb-3">
+                                  <label class="form-label">Price per page (Color)</label>
+                                  <div class="input-group">
+                                    <span class="input-group-text">AITP</span>
+                                    <input type="number" name="color_single" class="form-control"
+                                      value="<?php echo number_format($prices['color_single'], 2); ?>" step="0.01"
+                                      min="0" required>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div class="col-md-6">
+                                <div class="mb-3">
+                                  <label class="form-label">Price per double-sided page (Black and White)</label>
+                                  <div class="input-group">
+                                    <span class="input-group-text">AITP</span>
+                                    <input type="number" name="bw_double" class="form-control"
+                                      value="<?php echo number_format($prices['bw_double'], 2); ?>" step="0.01" min="0"
+                                      required>
+                                  </div>
+                                </div>
+
+                                <div class="mb-3">
+                                  <label class="form-label">Price per double-sided page (Color)</label>
+                                  <div class="input-group">
+                                    <span class="input-group-text">AITP</span>
+                                    <input type="number" name="color_double" class="form-control"
+                                      value="<?php echo number_format($prices['color_double'], 2); ?>" step="0.01"
+                                      min="0" required>
+                                  </div>
+                                </div>
                               </div>
                             </div>
-                            <div class="mb-3">
-                              <label class="form-label">Price per page (Color)</label>
-                              <div class="input-group">
-                                <span class="input-group-text">AITP</span>
-                                <input type="number" name="color_single" class="form-control"
-                                  value="<?php echo $prices['color_single']; ?>" step="0.10">
-                              </div>
+
+                            <div class="text-end">
+                              <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save me-2"></i>
+                                Save Changes
+                              </button>
+                              <button type="reset" class="btn btn-secondary ms-2">
+                                <i class="fas fa-undo me-2"></i>
+                                Reset
+                              </button>
                             </div>
-                            <div class="mb-3">
-                              <label class="form-label">Price per double-sided page (Black and White)</label>
-                              <div class="input-group">
-                                <span class="input-group-text">AITP</span>
-                                <input type="number" name="bw_double" class="form-control"
-                                  value="<?php echo $prices['bw_double']; ?>" step="0.10">
-                              </div>
+                          </form>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="col-md-4">
+                      <div class="card card-round bg-light">
+                        <div class="card-header">
+                          <h5 class="card-title">Preview current prices</h5>
+                        </div>
+                        <div class="card-body">
+                          <div class="price-preview">
+                            <div class="mb-2">
+                              <strong>One-sided (Black and White):</strong><br>
+                              <span class="badge bg-primary">AITP
+                                <?php echo number_format($prices['bw_single'], 2); ?></span>
                             </div>
-                            <div class="mb-3">
-                              <label class="form-label">Price per double-sided page (Color)</label>
-                              <div class="input-group">
-                                <span class="input-group-text">AITP</span>
-                                <input type="number" name="color_double" class="form-control"
-                                  value="<?php echo $prices['color_double']; ?>" step="0.10">
-                              </div>
+                            <div class="mb-2">
+                              <strong>One-sided (Color):</strong><br>
+                              <span class="badge bg-info">AITP
+                                <?php echo number_format($prices['color_single'], 2); ?></span>
                             </div>
+                            <div class="mb-2">
+                              <strong>Double-sided (Black and White):</strong><br>
+                              <span class="badge bg-success">AITP
+                                <?php echo number_format($prices['bw_double'], 2); ?></span>
+                            </div>
+                            <div class="mb-2">
+                              <strong>Double-sided (Color):</strong><br>
+                              <span class="badge bg-warning">AITP
+                                <?php echo number_format($prices['color_double'], 2); ?></span>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
